@@ -1,0 +1,1184 @@
+#Store the program data with json file
+import json
+#The coding know the real time
+import datetime
+#import the data to create a user
+from app.student import StudentUser
+from app.teacher import TeacherUser, Course
+from app.admin import AdminUser
+
+class ScheduleManager:
+    """The main controller for all business logic and data handling."""
+    def __init__(self, data_path="data/msms.json"):
+        #initialize all the data before start using the program
+        self.data_path = data_path                  #the file path
+        self.students = []                          #the students
+        self.teachers = []                          #the teachers
+        self.courses = []                           #the courses
+        self.admins = []                            #the admin
+        self.attendance_log = []                    #the attendance log
+        self.school_data = {                
+            "applications": [],                     #aplication of a teacher
+            "next_user_id": 1,                      #record the next user id
+            "next_course_id": 1,                    #record the next course id
+            "instruments": ["piano", "guitar"]      #record the instruments provide by the musical schools
+        }
+        self._load_data()                           #load all data from the json file
+    
+    def _load_data(self):
+        """Loads data from the JSON file and populates the object lists."""
+
+        try:
+            #try to find if the file exist or not
+            with open(self.data_path, "r") as f:
+                data = json.load(f)
+            
+            self.students = []      #store student
+            self.teachers = []      #store teacher
+            self.courses = []       #store course
+            self.admins = []        #store admin
+
+            for student_data in data.get("students", []):
+                #create student data by using the data
+                student = StudentUser(
+                    student_data["id"],
+                    student_data["name"],
+                    student_data["password"]
+                )
+                #create the data that is not created when a student is create
+                student.enrolled_course_ids = student_data.get(
+                    "enrolled_course_ids", []
+                )
+
+                student.grades = student_data.get(
+                    "grades", {}
+                )
+
+                #add the teacher data to the manager
+                self.students.append(student)
+            for teacher_data in data.get("teachers", []):
+                #create teacher data by using the data
+                teacher = TeacherUser(
+                    teacher_data["id"],
+                    teacher_data["name"],
+                    teacher_data["password"],
+                    teacher_data["speciality"],
+                    teacher_data["description"]
+                )
+                #add the data to the manager
+                self.teachers.append(teacher)
+            for admin_data in data.get("admin", []):
+                #create an admin data with the data
+                admin = AdminUser(
+                    admin_data["id"],
+                    admin_data["name"],
+                    admin_data["password"]
+                )
+                #add the admin data to the manager
+                self.admins.append(admin)
+
+            for course_data in data.get("courses", []):
+                #create a course data with the data
+                course = Course(
+                    course_data["id"],
+                    course_data["name"],
+                    course_data["instrument"],
+                    course_data["teacher_id"],
+                    course_data["grade"],
+                    course_data["password"],
+                    course_data["description"],
+                    course_data["max_student"]
+                )
+                #add the data that is not exist when course is create
+                course.enrolled_student_ids = course_data.get(
+                    "enrolled_student_ids", []
+                )
+                course.lessons = course_data.get(
+                    "lessons", []
+                )
+                #add it to the manager
+                self.courses.append(course)
+            #get data of attendance
+            self.attendance_log = data.get("attendance", [])
+            #get data of the school data
+            self.school_data = data.get("school_data", {
+                "applications": [],
+                "next_user_id": 1,
+                "next_course_id": 1,
+                "instruments": ["piano", "guitar"]
+            })
+        except FileNotFoundError:
+            #if the file is not found, this will be shown
+
+            print("Data file not found. Starting with a clean state.")
+    def find_student_by_id(self, id):
+        #find a student by enter id 
+        for student in self.students:
+            if student.id == id:
+                return student
+        return None
+    def find_teacher_by_id(self, id):
+        #find a teacher by enter id
+        for teacher in self.teachers:
+            if teacher.id == id:
+                return teacher
+        return None
+    def find_admin_by_id(self, id):
+        #find an admin by enter id
+        for admin in self.admins:
+            if admin.id == id:
+                return admin
+        return None
+    def find_course_by_id(self, id):
+        #find a course by entering id
+        for course in self.courses:
+            if course.id == id:
+                return course
+        return None
+    def find_user_by_id(self, id):
+        #find all of the user together at the same time
+        result = self.find_student_by_id(id)
+        if not result:
+            result = self.find_teacher_by_id(id)
+        if not result:
+            result = self.find_admin_by_id(id)
+        if not result:
+            return None
+        return result
+    def find_teacher(self, term):
+        #search for a teacher by using a term
+        term = term.lower().strip()
+        result = []
+        #find it by using id, name, speciality or description
+        for teacher in self.teachers:
+            if term in teacher.name.lower() or str(teacher.id) == term or term in teacher.speciality.lower() or term in teacher.description.lower():
+                result.append(teacher)
+        if len(result) == 0:
+            print("No match found")
+            return None
+        else:
+            #show all the teacher that fullfilled the requirements
+            for i, object in enumerate(result, 1):
+                print(f"{i}. ID: {object.id}, Name: {object.name}, Speciality: {object.speciality}")
+                print(f"Description: {object.description}")
+            return result
+    def find_student(self, term):
+        #find a student with a term by id, name, or instrument that enrolled
+        term = term.lower().strip()
+        result = []
+        for student in self.students:
+            if term in student.name.lower() or str(student.id) == term or any(term in instrument.lower() for instrument in student.grades):
+                result.append(student)
+        if len(result) == 0:
+            print("No match found")
+            return None
+        else:
+            #print all the founded students
+            for i, object in enumerate(result, 1):
+                print(f"{i}. ID: {object.id}, Name: {object.name}")
+            
+                if not object.grades:
+                    print("   No instruments recorded.")
+                else:
+                    print("   Grades:")
+                    for instrument, level in object.grades.items():
+                        print(f"     - {instrument}: Grade {level}")
+            return result 
+    def find_admin(self, term):
+        #find all the admin using a term by their name or id
+        term = term.lower().strip()
+        result = []
+        for admin in self.admins:
+            if term in admin.name.lower() or str(admin.id) == term:
+                result.append(admin)
+        if len(result) == 0:
+            print("No match found")
+            return None
+        else:
+            #print all the founded admin
+            for i, object in enumerate(result, 1):
+                print(f"{i}. ID: {object.id}, Name: {object.name}")
+            return result
+    def find_course(self, term):
+        #find a relevant course by id, name, description, or instrument
+        term = term.lower().strip()
+        result = []
+        for course in self.courses:
+            if (term in course.name.lower() or
+                str(course.id) == term or
+                term in course.description.lower() or
+                str(course.teacher_id) == term or
+                course.instrument.lower() == term 
+                ):
+                result.append(course)
+        if len(result) == 0:
+            print("No match found")
+            return None
+        else:
+            #show all
+            for i, object in enumerate(result, 1):
+                print(f"{i}. ID: {object.id}, Name: {object.name}, Teacher ID: {object.teacher_id}.")
+                print(f"Instrument: {object.instrument}, Grade: {object.grade}")
+                print(f"Description: {object.description}")
+                print(f"Enrolled student ID: {object.enrolled_student_ids}")
+            return result
+    def remove_user(self, id):
+        #remove a user
+        for teacher in self.teachers:
+            if teacher.id == id:
+                self.teachers.remove(teacher)
+                print(f"Teacher with id {id} is succesfully delete.")
+                new_courses = []
+                #remove every course form the teacher
+                for course in self.courses:
+                    if course.teacher_id != id:
+                        new_courses.append(course)
+
+                self.courses = new_courses
+                return
+        for student in self.students:
+            if student.id == id:
+                self.students.remove(student)
+                print(f"Teacher with id {id} is succesfully delete.")
+                #remove the student in the enrolled course id
+                for course in self.courses:
+                    if id in course.enrolled_student_ids:
+                        course.enrolled_student_ids.remove(id)
+                return
+        for admin in self.admins:
+            if admin.id == id:
+                self.admins.remove(admin)
+                print(f"Teacher with id {id} is succesfully delete.")
+                return
+        print(f"No user found.")
+    def add_teacher(self, name, password, speciality, description):
+        #add a teacher by using Teacher User
+        new_id = self.school_data["next_user_id"]
+        new_teacher = TeacherUser(new_id, name, password, speciality, description)
+        self.teachers.append(new_teacher)
+        self.school_data["next_user_id"]+=1
+    def add_student(self, name, password):
+        #add a new student by using Student User
+        new_id = self.school_data["next_user_id"]
+        new_student = StudentUser(new_id, name, password)
+        self.students.append(new_student)
+        self.school_data["next_user_id"]+=1
+    def add_admin(self, name, password):
+        #add an new admin by using adminuser
+        new_id = self.school_data["next_user_id"]
+        new_admin = AdminUser(new_id, name, password)
+        self.admins.append(new_admin)
+        self.school_data["next_user_id"]+=1
+        return new_admin
+    def update_user(self, id, **field):
+        #update all of the user by their field
+        for teacher in self.teachers:
+            if teacher.id == id:
+                for key, value in field.items():
+                    setattr(teacher, key, value)
+                print(f"User ID {id} has been successfully updated.")
+                return
+        for student in self.students:
+            if student.id == id:
+                for key, value in field.items():
+                    setattr(student, key, value)
+                print(f"User ID {id} has been successfully updated.")
+                return
+        for admin in self.admins:
+            if admin.id == id:
+                for key, value in field.items():
+                    setattr(admin, key, value)
+                print(f"User ID {id} has been successfully updated.")
+                return
+        print(f"No user found with id {id}.")
+
+    def update_course(self, course_id, **field):
+        #update a course information
+        course = self.find_course_by_id(course_id)
+
+        if course:
+            for key, value in field.items():
+                setattr(course, key, value)
+
+            print(f"Course ID {course_id} has been successfully updated.")
+            return
+
+        print(f"No course found with id {course_id}.")
+
+
+    def admin_list(self):
+        #show all the admin
+        for i, object in enumerate(self.admins, 1):
+            print(f"{i}. ID: {object.id}, Name: {object.name}")
+    def teacher_list(self):
+        #show all the teacher
+        for i, object in enumerate(self.teachers, 1):
+            print(f"{i}. ID: {object.id}, Name: {object.name}, Speciality: {object.speciality}")
+            print(f"Description: {object.description}")
+    def student_list(self):
+        #show all the student
+        for i, object in enumerate(self.students, 1):
+            print(f"{i}. ID: {object.id}, Name: {object.name}")
+        
+            if not object.grades:
+                print("   No instruments recorded.")
+            else:
+                print("   Grades:")
+                for instrument, level in object.grades.items():
+                    print(f"     - {instrument}: Grade {level}")
+    def course_list(self):
+        #show all the course
+        for i, object in enumerate(self.courses, 1):
+            print(f"{i}. ID: {object.id}, Name: {object.name}, Teacher ID: {object.teacher_id}.")
+            print(f"Instrument: {object.instrument}, Grade: {object.grade}")
+            print(f"Description: {object.description}")
+            print(f"Enrolled student ID: {object.enrolled_student_ids}")
+    def find_password(self, id):
+        #check the password by user id
+        user = self.find_user_by_id(id)
+        if user:
+            print(f"User ID: {user.id}")
+            print(f"Name: {user.name}")
+            print(f"Password: {user.password}")
+        else:
+            print("No user found.")
+    def add_course(self, name, teacher_id, grade, password, description, max_student):
+        #create a new course
+        new_course_id = self.school_data["next_course_id"]
+
+        instrument = None
+
+        for teacher in self.teachers:
+            if teacher_id == teacher.id:
+                instrument = teacher.speciality
+                break
+
+        if instrument is None:
+            print("Teacher not found.")
+            return
+
+        new_course = Course(
+            new_course_id,
+            name,
+            instrument,
+            teacher_id,
+            grade,
+            password,
+            description,
+            max_student
+        )
+
+        self.courses.append(new_course)
+        self.school_data["next_course_id"] += 1
+
+        print("Course Created")
+        print(f"ID: {new_course.id}, Name: {new_course.name}, Teacher ID: {new_course.teacher_id}")
+        print(f"Instrument: {new_course.instrument}, Grade: {new_course.grade}")
+        print(f"Description: {new_course.description}")
+        print(f"Enrolled student ID: {new_course.enrolled_student_ids}")
+    def print_student_card(self, student_id):
+        #make a new .txt file that contain student information
+        student = self.find_student_by_id(student_id)
+
+        if student:
+            filename = f"{student_id}_card.txt"
+
+            with open(filename, "w") as f:
+                f.write("========================\n")
+                f.write("  MUSIC SCHOOL ID BADGE\n")
+                f.write("========================\n")
+                f.write(f"ID: {student.id}\n")
+                f.write(f"Name: {student.name}\n")
+
+                enrolled_courses = []
+
+                for course_id in student.enrolled_course_ids:
+                    course = self.find_course_by_id(course_id)
+
+                    if course:
+                        enrolled_courses.append(course.name)
+
+                f.write(f"Enrolled In: {', '.join(enrolled_courses)}\n")
+
+            print(f"Printed student card to {filename}.")
+        else:
+            print(f"Error: Could not print card, student {student_id} not found.")
+    def create_password(self):
+        #creat a new password by making confirmation
+        while True:
+            print("Please enter your password.")
+            password = input()
+            print("Please confirm your password")
+            confirm_password = input()
+        
+            if confirm_password == password:
+                return password
+            print("the confirmation is not same as your password, please try again.")
+    def choose_instrument(self):
+        #choose an instrument in the instrument list
+        while True:
+            for i, instrument in enumerate(self.school_data["instruments"],1):
+                print(f"{i}. {instrument}")
+            try:
+                print("Please choose one instrument.")
+                choice = int(input())
+                if choice < 1 or choice > len(self.school_data["instruments"]):
+                    print("Invalid choice")
+                else:
+                    instrument = self.school_data["instruments"][choice - 1]
+                    return instrument
+            except ValueError:
+                print("Invalid choice")
+
+    def enrol_instrument(self, id, instrument, grade):
+        #add a new instrument for a student
+        student = self.find_student_by_id(id)
+
+        if student:
+            if instrument in student.grades:
+                #cannot enrolled in the same instrument
+                print(f"Student is already enrolled in {instrument}.")
+                return
+
+            student.grades[instrument] = grade
+            print(f"Successfully enrolled student ID {id} in {instrument}")
+            return
+
+        print("No student found")
+
+    def upgrade(self, id, instrument):
+        #increase the grade of an instrument
+        student = self.find_student_by_id(id)
+
+        if student:
+            if instrument in student.grades:
+                student.grades[instrument] += 1
+                print(f"Student ID {id}, {instrument} successfully upgraded")
+                return
+
+            print("Instrument not found")
+            return
+
+        print("Student not found")
+
+    def enrol_course(self, student_id, course_id, password):
+        # Find course
+        course = self.find_course_by_id(course_id)
+
+        if not course:
+            print("Course not found.")
+            return
+
+        # Check course capacity
+        if len(course.enrolled_student_ids) >= course.max_student:
+            print("Course is full.")
+            return
+
+        # Check course password
+        if password != course.password:
+            print("Incorrect course password.")
+            return
+
+        # Find student
+        student = self.find_student_by_id(student_id)
+
+        if not student:
+            print("Student not found.")
+            return
+
+        # Check whether the student already enrolled
+        if course_id in student.enrolled_course_ids:
+            print("Student has already enrolled in this course.")
+            return
+
+        # Check whether student has the required instrument
+        if course.instrument not in student.grades:
+            print(f"Student does not have the required instrument: {course.instrument}.")
+            return
+
+        # Check whether student's grade is high enough
+        student_grade = student.grades[course.instrument]
+
+        if student_grade != course.grade:
+            print(
+                f"Student grade does not match the course requirement. "
+                f"Required: {course.grade}, Student: {student_grade}."
+            )
+            return
+
+        # Enrollment successful
+        student.enrolled_course_ids.append(course_id)
+        course.enrolled_student_ids.append(student_id)
+
+        print(
+            f"Student ID {student_id} successfully enrolled in "
+            f"Course ID {course_id}."
+        )
+
+    def switch_course(self, student_id, old_course_id, new_course_id, password):
+        # Find old course
+        old_course = self.find_course_by_id(old_course_id)
+
+        if not old_course:
+            print("Old course not found.")
+            return
+
+        # Find new course
+        new_course = self.find_course_by_id(new_course_id)
+
+        if not new_course:
+            print("New course not found.")
+            return
+
+        # Check whether student is currently enrolled in the old course
+        student = self.find_student_by_id(student_id)
+
+        if not student:
+            print("Student not found.")
+            return
+
+        if old_course_id not in student.enrolled_course_ids:
+            print("Student is not enrolled in the old course.")
+            return
+
+        # Check whether student is already enrolled in the new course
+        if new_course_id in student.enrolled_course_ids:
+            print("Student is already enrolled in the new course.")
+            return
+
+        # Check new course capacity
+        if len(new_course.enrolled_student_ids) >= new_course.max_student:
+            print("New course is full.")
+            return
+
+        # Check new course password
+        if password != new_course.password:
+            print("Incorrect course password.")
+            return
+
+        # Check whether student has the required instrument
+        if new_course.instrument not in student.grades:
+            print(
+                f"Student does not have the required instrument: "
+                f"{new_course.instrument}."
+            )
+            return
+
+        # Check whether student's grade matches the new course
+        student_grade = student.grades[new_course.instrument]
+
+        if student_grade != new_course.grade:
+            print(
+                f"Student grade does not match the new course requirement. "
+                f"Required: {new_course.grade}, Student: {student_grade}."
+            )
+            return
+
+        # Remove student from old course
+        student.enrolled_course_ids.remove(old_course_id)
+        old_course.enrolled_student_ids.remove(student_id)
+
+        # Add student to new course
+        student.enrolled_course_ids.append(new_course_id)
+        new_course.enrolled_student_ids.append(student_id)
+
+        print(
+            f"Student ID {student_id} successfully switched "
+            f"from Course ID {old_course_id} to Course ID {new_course_id}."
+        )
+
+
+    def teacher_choose_course(self, teacher_id):
+            #teacher can choose a course 
+            result = []
+            for course in self.courses:
+                if course.teacher_id == teacher_id:
+                    result.append(course)
+            if len(result) == 0:
+                print("No course")
+                return None
+            else:
+                #show all the course that teach by the teacher
+                for i, object in enumerate(result, 1):
+                    print(f"{i}. ID: {object.id}, Name: {object.name}, Teacher ID: {object.teacher_id}.")
+                    print(f"Instrument: {object.instrument}, Grade: {object.grade}")
+                    print(f"Description: {object.description}")
+                    print(f"Enrolled student ID: {object.enrolled_student_ids}")
+                while True:
+                    try:
+                        print("Please input your choice")
+                        choice = int(input())
+                        if choice < 1 or choice > len(result):
+                            print("Invalid choice")
+                        else:
+                            course = result[choice - 1]
+                            return course
+                    except ValueError:
+                        print("invalid choice.")
+
+    def manage_lesson(self, teacher_id):
+        # Let teacher choose one of their courses
+        course = self.teacher_choose_course(teacher_id)
+
+        if not course:
+            return
+
+        while True:
+
+            print(f"Manage Lessons - {course.name}")
+
+
+            # Display current lessons
+            if not course.lessons:
+                print("No lessons.")
+            else:
+                for i, lesson in enumerate(course.lessons, 1):
+                    print(
+                        f"{i}. Date: {lesson['date']}, "
+                        f"Time: {lesson['time']}, "
+                        f"Activity: {lesson['activity']}"
+                    )
+            print("\n========================")
+            print("\n1. Add lesson")
+            print("2. Remove lesson")
+            print("3. Exit")
+
+            try:
+                choice = int(input("Please input your choice: "))
+
+                
+                # Add lesson
+                
+                if choice == 1:
+                    while True:
+                        date = input(
+                            "Please enter the date (YYYY-MM-DD): "
+                        )
+
+                        time = input(
+                            "Please enter the time (HH:MM): "
+                        )
+
+                        try:
+                            lesson_datetime = datetime.datetime.strptime(
+                                f"{date} {time}",
+                                "%Y-%m-%d %H:%M"
+                            )
+
+                            # Lesson must be in the future
+                            if lesson_datetime <= datetime.datetime.now():
+                                print(
+                                    "The lesson must be scheduled "
+                                    "for a future time."
+                                )
+                                continue
+
+                            break
+
+                        except ValueError:
+                            print(
+                                "Invalid date or time."
+                                " Please use YYYY-MM-DD and HH:MM."
+                            )
+
+                    activity = input("Please enter the activity: ")
+
+                    lesson = {
+                        "date": date,
+                        "time": time,
+                        "activity": activity
+                    }
+
+                    course.lessons.append(lesson)
+
+                    self._save_data()
+
+                    print("Lesson added successfully.")
+
+                
+                # Remove lesson
+                
+                elif choice == 2:
+                    if not course.lessons:
+                        print("No lessons to remove.")
+                        continue
+
+                    print("\n--- LESSONS TO REMOVE ---")
+
+                    for i, lesson in enumerate(course.lessons, 1):
+                        print(f"{i}. Date: {lesson['date']}")
+                        print(f"   Time: {lesson['time']}")
+                        print(f"   Activity: {lesson['activity']}")
+
+                    while True:
+                        try:
+                            lesson_choice = int(
+                                input(
+                                    "\nPlease choose the lesson to remove: "
+                                )
+                            )
+
+                            if (
+                                lesson_choice < 1
+                                or lesson_choice > len(course.lessons)
+                            ):
+                                print("Invalid choice.")
+                                continue
+
+                            break
+
+                        except ValueError:
+                            print("Please enter a valid number.")
+
+                    removed_lesson = course.lessons.pop(
+                        lesson_choice - 1
+                    )
+
+                    self._save_data()
+
+                    print(
+                        f"Lesson on {removed_lesson['date']} "
+                        f"at {removed_lesson['time']} "
+                        f"has been removed."
+                    )
+
+                
+                # Exit
+
+                elif choice == 3:
+                    print("Exit lesson management.")
+                    return
+
+                else:
+                    print("Invalid choice.")
+
+            except ValueError:
+                print("Please enter a valid number.")
+
+
+    def view_schedule(self, user_id, date):
+        #take a look of the timetable
+        user = self.find_user_by_id(user_id)
+
+        if not user:
+            print("User not found.")
+            return
+
+        result = []
+
+        # Student
+        student = self.find_student_by_id(user_id)
+
+        if student:
+            for course_id in student.enrolled_course_ids:
+                course = self.find_course_by_id(course_id)
+
+                if course:
+                    for lesson in course.lessons:
+                        if lesson["date"] == date:
+                            result.append((course, lesson))
+
+        # Teacher
+        else:
+            teacher = self.find_teacher_by_id(user_id)
+
+            if teacher:
+                for course in self.courses:
+                    if course.teacher_id == user_id:
+                        for lesson in course.lessons:
+                            if lesson["date"] == date:
+                                result.append((course, lesson))
+
+        if not result:
+            print(f"No lessons found on {date}.")
+            return
+
+        # Sort lessons by time
+        result.sort(key=lambda x: x[1]["time"])
+
+        print(f"\n---Schedule for {date}---")
+        for i, (course, lesson) in enumerate(result, 1):
+            print(f"{i}. Course: {course.name}")
+            print(f"   Course ID: {course.id}")
+            print(f"   Time: {lesson['time']}")
+            print(f"   Activity: {lesson['activity']}")
+
+    def check_in(self, student_id, course_id, lesson_index):
+        """Records a student's attendance for a specific lesson."""
+
+        student = self.find_student_by_id(student_id)
+        course = self.find_course_by_id(course_id)
+
+        # Check student and course
+        if not student or not course:
+            print("Error: Invalid Student or Course ID.")
+            return False
+
+        # Check whether student is enrolled in this course
+        if course_id not in student.enrolled_course_ids:
+            print("Error: Student is not enrolled in this course.")
+            return False
+
+        # Check lesson index
+        if lesson_index < 1 or lesson_index > len(course.lessons):
+            print("Error: Invalid lesson.")
+            return False
+
+        # Get the selected lesson
+        lesson = course.lessons[lesson_index - 1]
+
+        # Get current date and time
+        now = datetime.datetime.now()
+
+        lesson_date = datetime.datetime.strptime(
+            lesson["date"], "%Y-%m-%d"
+        ).date()
+
+        lesson_time = datetime.datetime.strptime(
+            lesson["time"], "%H:%M"
+        ).time()
+
+        # Check whether today is the lesson date
+        if now.date() != lesson_date:
+            print("Check-in failed: This is not the lesson date.")
+            return False
+
+        # Check whether current time matches lesson time
+        lesson_datetime = datetime.datetime.combine(
+            lesson_date,
+            lesson_time
+        )
+
+        # Allow check-in only during the lesson time
+        lesson_end = lesson_datetime + datetime.timedelta(hours=1)
+
+        if now < lesson_datetime or now > lesson_end:
+            print(
+                f"Check-in failed. "
+                f"Check-in is only available from "
+                f"{lesson['time']} to {lesson_end.strftime('%H:%M')}."
+            )
+            return False
+
+        # Check whether student has already checked in
+        for record in self.attendance_log:
+            if (
+                record["student_id"] == student_id
+                and record["course_id"] == course_id
+                and record["lesson_index"] == lesson_index
+            ):
+                print("Student has already checked in for this lesson.")
+                return False
+
+        # Create attendance record
+        timestamp = now.isoformat()
+
+        check_in_record = {
+            "student_id": student_id,
+            "course_id": course_id,
+            "lesson_index": lesson_index,
+            "date": lesson["date"],
+            "time": lesson["time"],
+            "activity": lesson["activity"],
+            "timestamp": timestamp
+        }
+
+        self.attendance_log.append(check_in_record)
+
+        self._save_data()
+
+        print(
+            f"Success: Student {student.name} checked into "
+            f"{course.name}."
+        )
+
+        return True
+
+    def check_attendance(self, user_id):
+        #show the attendance to the teacher or the student
+        user = self.find_user_by_id(user_id)
+
+        if not user:
+            print("User not found.")
+            return
+
+        
+        # Student
+        
+        student = self.find_student_by_id(user_id)
+
+        if student:
+            print("\n========================")
+            print(f"Attendance for {student.name}")
+            print("========================")
+
+            found = False
+
+            for course_id in student.enrolled_course_ids:
+                course = self.find_course_by_id(course_id)
+
+                if not course:
+                    continue
+
+                for lesson_index, lesson in enumerate(course.lessons, 1):
+
+                    status = "Absent"
+
+                    for record in self.attendance_log:
+                        if (
+                            record["student_id"] == student.id
+                            and record["course_id"] == course.id
+                            and record["lesson_index"] == lesson_index
+                        ):
+                            status = "Present"
+                            break
+
+                    print(f"\nCourse: {course.name}")
+                    print(f"Date: {lesson['date']}")
+                    print(f"Time: {lesson['time']}")
+                    print(f"Activity: {lesson['activity']}")
+                    print(f"Status: {status}")
+
+                    found = True
+
+            if not found:
+                print("No lessons found.")
+
+            return
+
+        
+        # Teacher
+        
+        teacher = self.find_teacher_by_id(user_id)
+
+        if teacher:
+            teacher_courses = []
+
+            for course in self.courses:
+                if course.teacher_id == teacher.id:
+                    teacher_courses.append(course)
+
+            if not teacher_courses:
+                print("No courses found.")
+                return
+
+            print("\n========================")
+            print(f"Your Courses - {teacher.name}")
+            print("========================")
+
+            for i, course in enumerate(teacher_courses, 1):
+                print(f"{i}. {course.name}")
+
+            while True:
+                choice = input("\nPlease choose a course: ")
+
+                if not choice.isdigit():
+                    print("Please enter a valid number.")
+                    continue
+
+                choice = int(choice)
+
+                if choice < 1 or choice > len(teacher_courses):
+                    print("Invalid choice.")
+                    continue
+
+                course = teacher_courses[choice - 1]
+                break
+
+            if not course.lessons:
+                print("No lessons found.")
+                return
+
+            print("\n========================")
+            print(f"Lessons - {course.name}")
+            print("========================")
+
+            for i, lesson in enumerate(course.lessons, 1):
+                print(
+                    f"{i}. Date: {lesson['date']}, "
+                    f"Time: {lesson['time']}, "
+                    f"Activity: {lesson['activity']}"
+                )
+
+            while True:
+                choice = input("\nPlease choose a lesson: ")
+
+                if not choice.isdigit():
+                    print("Please enter a valid number.")
+                    continue
+
+                choice = int(choice)
+
+                if choice < 1 or choice > len(course.lessons):
+                    print("Invalid choice.")
+                    continue
+
+                lesson_index = choice
+                lesson = course.lessons[lesson_index - 1]
+                break
+
+            print("\n========================")
+            print(f"Attendance - {course.name}")
+            print("========================")
+            print(f"Date: {lesson['date']}")
+            print(f"Time: {lesson['time']}")
+            print(f"Activity: {lesson['activity']}")
+            print()
+
+            if not course.enrolled_student_ids:
+                print("No students enrolled.")
+                return
+
+            for student_id in course.enrolled_student_ids:
+
+                student = self.find_student_by_id(student_id)
+
+                status = "Absent"
+
+                for record in self.attendance_log:
+                    if (
+                        record["student_id"] == student_id
+                        and record["course_id"] == course.id
+                        and record["lesson_index"] == lesson_index
+                    ):
+                        status = "Present"
+                        break
+
+                if student:
+                    print(f"Student ID: {student.id}")
+                    print(f"Student: {student.name}")
+                    print(f"Status: {status}")
+                else:
+                    print(f"Student ID: {student_id}")
+                    print(f"Status: {status}")
+
+                print()
+
+            return
+
+    def valid_name(self, name):
+        # Check name length
+        if len(name) < 2 or len(name) > 30:
+            print("Invalid name, the name should more than 2 characters and less than 30 characters")
+            return False
+        if name.strip() == "":
+            print("Invalid name, the name shouldn't be empty")
+            return False
+        # Check every character
+        if not all(char.isalpha() or char.isspace() for char in name):
+            print("Invalid name, the name shouldn't consists special character.")
+            return False
+        print("Name accepted:", name)
+        return True
+    def add_instrument(self, instrument):
+        #add a instrument to the list
+        if instrument not in self.school_data["instruments"]:
+            self.school_data["instruments"].append(instrument)
+            print(f"{instrument} has been added.")
+        else:
+            print(f"{instrument} already exists.")
+    def remove_instrument(self, instrument):
+        #remove an instrument from a list
+        if instrument in self.school_data["instruments"]:
+            self.school_data["instruments"].remove(instrument)
+            print(f"{instrument} has been removed.")
+        else:
+            print(f"{instrument} does not exist.")
+    def teacher_applications(self):
+        #see who apply to be a teacher
+        print("\n ---Teacher Applications---")
+
+        applications = self.school_data["applications"]
+
+        if len(applications) == 0:
+            print("No teacher applications.")
+            return
+
+        while True:
+            print("\n--- Teacher Applications ---")
+            #show all the application
+            for number, application in enumerate(applications, start=1):
+                print(f"\n{number}.")
+                print(f"Name: {application['name']}")
+                print(f"Speciality: {application['speciality']}")
+                print(f"Description: {application['description']}")
+
+            print("\nq. Return")
+
+            choice = input("Please select an application: ")
+
+            if choice.lower() == "q":
+                return
+
+            if not choice.isdigit():
+                print("Invalid choice.")
+                continue
+
+            choice = int(choice)
+
+            if choice < 1 or choice > len(applications):
+                print("Invalid choice.")
+                continue
+
+            application = applications[choice - 1]
+
+            print("\n--- Application Information ---")
+            print(f"Name: {application['name']}")
+            print(f"Speciality: {application['speciality']}")
+            print(f"Description: {application['description']}")
+
+            print("\n1. Approve")
+            print("2. Ignore and Delete")
+            print("q. Cancel")
+
+            action = input("Please enter your choice: ")
+            #choose what to do with the application
+            if action == "1":
+                teacher_id = self.school_data["next_user_id"]
+
+                new_teacher = TeacherUser(
+                    teacher_id,
+                    application["name"],
+                    application["password"],
+                    application["speciality"],
+                    application["description"]
+                )
+
+                self.teachers.append(new_teacher)
+
+                self.school_data["next_user_id"] += 1
+
+                applications.remove(application)
+
+                self._save_data()
+
+                print("\nTeacher application approved.")
+                print(f"Teacher ID: {teacher_id}")
+                print(f"Teacher Name: {new_teacher.name}")
+
+            elif action == "2":
+                applications.remove(application)
+
+                self._save_data()
+
+                print("\nTeacher application ignored and deleted.")
+
+            elif action.lower() == "q":
+                print("Action cancelled.")
+
+            else:
+                print("Invalid choice.")
+    def _save_data(self):
+        """Converts object lists back to dictionaries and saves to JSON."""
+
+        data_to_save = {
+            "students": [s.__dict__ for s in self.students],    #save student data
+            "teachers": [t.__dict__ for t in self.teachers],    #save teacher data
+            "courses": [c.__dict__ for c in self.courses],      #save courses data
+            "admin": [a.__dict__ for a in self.admins],         #save admin data
+            "attendance": self.attendance_log,                  #save attendance
+            "school_data": self.school_data                     #save school data
+        }
+
+        with open(self.data_path, "w") as f:
+            json.dump(data_to_save, f, indent=4)
