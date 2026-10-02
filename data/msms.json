@@ -1,0 +1,60 @@
+{
+    "students": [
+        {
+            "id": 7,
+            "name": "aa",
+            "password": "aa",
+            "enrolled_course_ids": [],
+            "grades": {
+                "piano": 1
+            }
+        }
+    ],
+    "teachers": [
+        {
+            "id": 3,
+            "name": "sda",
+            "password": "ss",
+            "speciality": "piano",
+            "description": "asaddsasa"
+        },
+        {
+            "id": 5,
+            "name": "aaa",
+            "password": "aa",
+            "speciality": "guitar",
+            "description": "ass"
+        },
+        {
+            "id": 6,
+            "name": "aaa",
+            "password": "a",
+            "speciality": "piano",
+            "description": "aaaaaa"
+        }
+    ],
+    "courses": [],
+    "admin": [
+        {
+            "id": 1,
+            "name": "aa",
+            "password": "aa"
+        },
+        {
+            "id": 4,
+            "name": "aaa",
+            "password": "aa"
+        }
+    ],
+    "attendance": [],
+    "school_data": {
+        "applications": [],
+        "next_user_id": 8,
+        "next_course_id": 1,
+        "instruments": [
+            "piano",
+            "guitar",
+            "Voilin"
+        ]
+    }
+}

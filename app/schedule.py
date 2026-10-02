@@ -222,47 +222,79 @@ class ScheduleManager:
                 print(f"Description: {object.description}")
                 print(f"Enrolled student ID: {object.enrolled_student_ids}")
             return result
+    def remove_course(self, course_id):
+        # Remove a course and clean the course from all related students
+        # and attendance records.
+        course = self.find_course_by_id(course_id)
+
+        if not course:
+            print(f"No course found with id {course_id}.")
+            return False
+
+        # Remove the course ID from every student's enrolled courses.
+        for student in self.students:
+            if course_id in student.enrolled_course_ids:
+                student.enrolled_course_ids.remove(course_id)
+
+        # Remove attendance records belonging to this course.
+        self.attendance_log = [
+            record
+            for record in self.attendance_log
+            if record.get("course_id") != course_id
+        ]
+
+        # Remove the course itself.
+        self.courses.remove(course)
+
+        print(f"Course ID {course_id} has been successfully deleted.")
+        return True
     def remove_user(self, id):
-        #remove a user
+        # remove a user
         for teacher in self.teachers:
             if teacher.id == id:
                 self.teachers.remove(teacher)
-                print(f"Teacher with id {id} is succesfully delete.")
-                new_courses = []
-                #remove every course form the teacher
-                for course in self.courses:
-                    if course.teacher_id != id:
-                        new_courses.append(course)
+                print(f"Teacher with id {id} is successfully deleted.")
 
-                self.courses = new_courses
+                # remove every course from the teacher
+                for course in self.courses.copy():
+                    if course.teacher_id == id:
+                        self.remove_course(course.id)
+
                 return
+
         for student in self.students:
             if student.id == id:
                 self.students.remove(student)
-                print(f"Teacher with id {id} is succesfully delete.")
-                #remove the student in the enrolled course id
+                print(f"Student with id {id} is successfully deleted.")
+
+                # remove the student from enrolled course lists
                 for course in self.courses:
                     if id in course.enrolled_student_ids:
                         course.enrolled_student_ids.remove(id)
+
                 return
+
         for admin in self.admins:
             if admin.id == id:
                 self.admins.remove(admin)
-                print(f"Teacher with id {id} is succesfully delete.")
+                print(f"Admin with id {id} is successfully deleted.")
                 return
-        print(f"No user found.")
+
+        print("No user found.")
     def add_teacher(self, name, password, speciality, description):
         #add a teacher by using Teacher User
         new_id = self.school_data["next_user_id"]
         new_teacher = TeacherUser(new_id, name, password, speciality, description)
         self.teachers.append(new_teacher)
         self.school_data["next_user_id"]+=1
+        return new_teacher
     def add_student(self, name, password):
         #add a new student by using Student User
         new_id = self.school_data["next_user_id"]
         new_student = StudentUser(new_id, name, password)
         self.students.append(new_student)
         self.school_data["next_user_id"]+=1
+        return new_student
     def add_admin(self, name, password):
         #add an new admin by using adminuser
         new_id = self.school_data["next_user_id"]
@@ -271,27 +303,80 @@ class ScheduleManager:
         self.school_data["next_user_id"]+=1
         return new_admin
     def update_user(self, id, **field):
-        #update all of the user by their field
+        # update all of the user by their field
         for teacher in self.teachers:
             if teacher.id == id:
+                # Check whether the teacher's speciality is being changed
+                old_speciality = teacher.speciality
+                new_speciality = field.get("speciality", old_speciality)
+
+                # If speciality changes, remove all courses
+                # belonging to this teacher
+                if new_speciality != old_speciality:
+                    self._remove_teacher_courses(teacher.id)
+
                 for key, value in field.items():
                     setattr(teacher, key, value)
+
                 print(f"User ID {id} has been successfully updated.")
                 return
+
         for student in self.students:
             if student.id == id:
                 for key, value in field.items():
                     setattr(student, key, value)
+
                 print(f"User ID {id} has been successfully updated.")
                 return
+
         for admin in self.admins:
             if admin.id == id:
                 for key, value in field.items():
                     setattr(admin, key, value)
+
                 print(f"User ID {id} has been successfully updated.")
                 return
-        print(f"No user found with id {id}.")
 
+        print(f"No user found with id {id}.")
+    def _remove_teacher_courses(self, teacher_id):
+        # Find all courses belonging to this teacher
+        course_ids_to_remove = {
+            course.id
+            for course in self.courses
+            if course.teacher_id == teacher_id
+        }
+
+        # No courses to remove
+        if not course_ids_to_remove:
+            return
+
+        # Remove the courses from the system
+        self.courses = [
+            course
+            for course in self.courses
+            if course.id not in course_ids_to_remove
+        ]
+
+        # Remove the deleted course IDs from every student's
+        # enrolled_course_ids
+        for student in self.students:
+            student.enrolled_course_ids = [
+                course_id
+                for course_id in student.enrolled_course_ids
+                if course_id not in course_ids_to_remove
+            ]
+
+        # Remove attendance records belonging to deleted courses
+        self.attendance_log = [
+            record
+            for record in self.attendance_log
+            if record.get("course_id") not in course_ids_to_remove
+        ]
+
+        print(
+            f"Removed {len(course_ids_to_remove)} course(s) "
+            f"belonging to Teacher ID {teacher_id}."
+        )
     def update_course(self, course_id, **field):
         #update a course information
         course = self.find_course_by_id(course_id)
@@ -403,48 +488,25 @@ class ScheduleManager:
             print(f"Printed student card to {filename}.")
         else:
             print(f"Error: Could not print card, student {student_id} not found.")
-    def create_password(self):
-        #creat a new password by making confirmation
-        while True:
-            print("Please enter your password.")
-            password = input()
-            print("Please confirm your password")
-            confirm_password = input()
-        
-            if confirm_password == password:
-                return password
-            print("the confirmation is not same as your password, please try again.")
-    def choose_instrument(self):
-        #choose an instrument in the instrument list
-        while True:
-            for i, instrument in enumerate(self.school_data["instruments"],1):
-                print(f"{i}. {instrument}")
-            try:
-                print("Please choose one instrument.")
-                choice = int(input())
-                if choice < 1 or choice > len(self.school_data["instruments"]):
-                    print("Invalid choice")
-                else:
-                    instrument = self.school_data["instruments"][choice - 1]
-                    return instrument
-            except ValueError:
-                print("Invalid choice")
-
     def enrol_instrument(self, id, instrument, grade):
-        #add a new instrument for a student
+        # add a new instrument for a student
         student = self.find_student_by_id(id)
 
-        if student:
-            if instrument in student.grades:
-                #cannot enrolled in the same instrument
-                print(f"Student is already enrolled in {instrument}.")
-                return
+        if not student:
+            print("No student found")
+            return False
 
-            student.grades[instrument] = grade
-            print(f"Successfully enrolled student ID {id} in {instrument}")
-            return
+        if instrument in student.grades:
+            print(f"Student is already enrolled in {instrument}.")
+            return False
 
-        print("No student found")
+        student.grades[instrument] = grade
+
+        print(
+            f"Successfully enrolled student ID {id} in {instrument}"
+        )
+
+        return True
 
     def upgrade(self, id, instrument):
         #increase the grade of an instrument
@@ -615,7 +677,18 @@ class ScheduleManager:
                             return course
                     except ValueError:
                         print("invalid choice.")
+    def add_teacher_application(
+        self, name, password, speciality, description
+    ):
+        application = {
+            "name": name,
+            "password": password,
+            "speciality": speciality,
+            "description": description
+        }
 
+        self.school_data["applications"].append(application)
+        self._save_data()
     def manage_lesson(self, teacher_id):
         # Let teacher choose one of their courses
         course = self.teacher_choose_course(teacher_id)
@@ -1077,6 +1150,70 @@ class ScheduleManager:
             print(f"{instrument} has been added.")
         else:
             print(f"{instrument} already exists.")
+    def disenroll_instrument(self, id, instrument):
+        student = self.find_student_by_id(id)
+
+        if not student:
+            print("No student found")
+            return False
+
+        if instrument not in student.grades:
+            print(f"Student is not enrolled in {instrument}.")
+            return False
+
+        del student.grades[instrument]
+
+        courses_to_remove = []
+
+        for course in self.courses:
+            if (
+                course.id in student.enrolled_course_ids
+                and course.instrument == instrument
+            ):
+                courses_to_remove.append(course.id)
+
+        for course_id in courses_to_remove:
+            student.enrolled_course_ids.remove(course_id)
+
+            course = self.find_course_by_id(course_id)
+
+            if course and id in course.enrolled_student_ids:
+                course.enrolled_student_ids.remove(id)
+
+            self.attendance_log = [
+                record
+                for record in self.attendance_log
+                if not (
+                    record.get("student_id") == id
+                    and record.get("course_id") == course_id
+                )
+            ]
+
+        print(
+            f"Successfully disenrolled student ID {id} "
+            f"from {instrument}."
+        )
+
+        return True
+    def update_enrollment(self, id, instrument, grade):
+        student = self.find_student_by_id(id)
+
+        if not student:
+            print("No student found")
+            return False
+
+        if instrument not in student.grades:
+            print(f"Student is not enrolled in {instrument}.")
+            return False
+
+        student.grades[instrument] = grade
+
+        print(
+            f"Student ID {id}, {instrument} grade "
+            f"successfully updated to {grade}."
+        )
+
+        return True
     def remove_instrument(self, instrument):
         #remove an instrument from a list
         if instrument in self.school_data["instruments"]:
