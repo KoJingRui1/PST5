@@ -4,6 +4,8 @@ This is a Musical School Management System.  This update provide an User Interfa
 
 This is a project developed for FIT 1056 as the PST4.
 
+The github page of the project is 
+
 This is the project structure.
 
 ```text
@@ -22,7 +24,8 @@ PST4/
 │   ├── student_pages.py
 │   ├── teacher_pages.py
 │   └── admin_pages.py
-│
+├──data/
+│   └── msms.json
 ├── main.py
 ├── run.bat
 └── README.md
@@ -43,3 +46,54 @@ or double-click this file
 run.bat
 ```
 
+This file save data by using json.  The data will be saved at the file
+
+```text
+data/msms.json
+```
+
+that contains the data about the users, the schools and the courses.
+
+If you run the file without an msms.json, that means no data and start over, you will be request to create the first admin.  You should enter your name, your password and confirm your password.
+
+Admin is an important role in the system.  Their role is to control the whole system and edit the data.  After you log in as an admin, you will see five buttons at the side bar.
+
+The deflaut button is the profile button.  It will shows your profile, which contains your name and your ID.  You can update your profile there.  
+
+In the update page, you can choose what to update, your name or your password.  A name should be in between 2-30 characters and does not contain a special character such as ! and , .  To update your password, you should enter your current password.
+
+The next function is the user page.  You can choose a role type and show every user in it.  You can also filter the result with the term selectbox.  In the end of every data, there is a select box.  You can only select per person per time, and choose to update their profile or delete the user.  You cannot delete yourselves as an admin.  There is an add account function at the bottom, which you can choose to add a new account if you want.  
+
+The third function is application.  You can see who had apply to be a teacher and their information in a table.  You can choose one and make your choice, to approve or delete.
+
+The fourth function is courses.  It will shows all the courses in the system.  You can choose a course and edit the course.  The course also provide a function that you can add a new course.  In the update function, you can also add a new lesson in the course.
+
+The fifth function is instrument.  You will see a table with instrument, the teachers speciality is the instrument, the student who enrol in the instrument and the course that teach the instrument.  There is a new function which you can add a new instrument inside the instrument list.
+
+The sixth function is daily roster.  You can choose the date you need and the default date is TODAY.  You can also open the detail of the lessons by chosing them along and see about the course.  You can give attandence to the students also.
+
+Now, the last function is for you to log out.  You will go back to the deflaut page.  In this page, you can log in or sign up.
+
+The log in function enable you to enter the system with an existing acount.  You can enter a term such as name and ID, and choose your account.  You will be ask to enter your password. 
+
+The sign up term enable you to create a new account.  In this system, you should be only enable to create a student account.  A teacher account requires you to apply and approve by the admin.  An admin account can only be created by another admin.
+
+The default page for a student is the profile page.  It is exactly same as the admin.
+
+The second page is the enrolment page.  You can enrol for a musical instrument or disenroll one.  If you disenroll one instrument, you will disenroll from the course of the enrolment too.  You can also upgrade a level if you get a certificate.
+
+The third page is the course page.  It provide your course and the lessons that will happen in next 7 days.  You can disenroll or switch a course there.  You can also check in for a course when it is available.  At the bottom of the function, you will see all the suitable course you can get.  You can enroll if you have the password of the course.
+
+The fourth function is the daily roster.  The student can see what they have for a day, and the default date is today.  The student can also check in easily here.
+
+The fifth function is log out.
+
+For the teacher's menu, the default and the first function is teacher profile, which is exactly the same as the students and the admins.
+
+The second function is course.  A teacher can create a course and manage their course there.  The teacher can check students attandence, add lessons in the manage course session.  A teacher can also delete the course.
+
+The daily roster function can enable a teacher to see what is the lesson they are going to teach at a day, and the default date is today.  The teacher can manage their lessons easily there.
+
+The last function, same as admin and student, is log out.
+
+That's all, hope you enjoy your application running.
