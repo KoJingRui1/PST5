@@ -199,29 +199,6 @@ class ScheduleManager:
             for i, object in enumerate(result, 1):
                 print(f"{i}. ID: {object.id}, Name: {object.name}")
             return result
-    def find_course(self, term):
-        #find a relevant course by id, name, description, or instrument
-        term = term.lower().strip()
-        result = []
-        for course in self.courses:
-            if (term in course.name.lower() or
-                str(course.id) == term or
-                term in course.description.lower() or
-                str(course.teacher_id) == term or
-                course.instrument.lower() == term 
-                ):
-                result.append(course)
-        if len(result) == 0:
-            print("No match found")
-            return None
-        else:
-            #show all
-            for i, object in enumerate(result, 1):
-                print(f"{i}. ID: {object.id}, Name: {object.name}, Teacher ID: {object.teacher_id}.")
-                print(f"Instrument: {object.instrument}, Grade: {object.grade}")
-                print(f"Description: {object.description}")
-                print(f"Enrolled student ID: {object.enrolled_student_ids}")
-            return result
     def remove_course(self, course_id):
         # Remove a course and clean the course from all related students
         # and attendance records.
@@ -281,6 +258,18 @@ class ScheduleManager:
                 return
 
         print("No user found.")
+    def add_teacher_application(
+        self, name, password, speciality, description
+    ):
+        application = {
+            "name": name,
+            "password": password,
+            "speciality": speciality,
+            "description": description
+        }
+
+        self.school_data["applications"].append(application)
+        self._save_data()
     def add_teacher(self, name, password, speciality, description):
         #add a teacher by using Teacher User
         new_id = self.school_data["next_user_id"]
@@ -391,42 +380,7 @@ class ScheduleManager:
         print(f"No course found with id {course_id}.")
 
 
-    def admin_list(self):
-        #show all the admin
-        for i, object in enumerate(self.admins, 1):
-            print(f"{i}. ID: {object.id}, Name: {object.name}")
-    def teacher_list(self):
-        #show all the teacher
-        for i, object in enumerate(self.teachers, 1):
-            print(f"{i}. ID: {object.id}, Name: {object.name}, Speciality: {object.speciality}")
-            print(f"Description: {object.description}")
-    def student_list(self):
-        #show all the student
-        for i, object in enumerate(self.students, 1):
-            print(f"{i}. ID: {object.id}, Name: {object.name}")
-        
-            if not object.grades:
-                print("   No instruments recorded.")
-            else:
-                print("   Grades:")
-                for instrument, level in object.grades.items():
-                    print(f"     - {instrument}: Grade {level}")
-    def course_list(self):
-        #show all the course
-        for i, object in enumerate(self.courses, 1):
-            print(f"{i}. ID: {object.id}, Name: {object.name}, Teacher ID: {object.teacher_id}.")
-            print(f"Instrument: {object.instrument}, Grade: {object.grade}")
-            print(f"Description: {object.description}")
-            print(f"Enrolled student ID: {object.enrolled_student_ids}")
-    def find_password(self, id):
-        #check the password by user id
-        user = self.find_user_by_id(id)
-        if user:
-            print(f"User ID: {user.id}")
-            print(f"Name: {user.name}")
-            print(f"Password: {user.password}")
-        else:
-            print("No user found.")
+
     def add_course(self, name, teacher_id, grade, password, description, max_student):
         #create a new course
         new_course_id = self.school_data["next_course_id"]
@@ -461,33 +415,7 @@ class ScheduleManager:
         print(f"Instrument: {new_course.instrument}, Grade: {new_course.grade}")
         print(f"Description: {new_course.description}")
         print(f"Enrolled student ID: {new_course.enrolled_student_ids}")
-    def print_student_card(self, student_id):
-        #make a new .txt file that contain student information
-        student = self.find_student_by_id(student_id)
 
-        if student:
-            filename = f"{student_id}_card.txt"
-
-            with open(filename, "w") as f:
-                f.write("========================\n")
-                f.write("  MUSIC SCHOOL ID BADGE\n")
-                f.write("========================\n")
-                f.write(f"ID: {student.id}\n")
-                f.write(f"Name: {student.name}\n")
-
-                enrolled_courses = []
-
-                for course_id in student.enrolled_course_ids:
-                    course = self.find_course_by_id(course_id)
-
-                    if course:
-                        enrolled_courses.append(course.name)
-
-                f.write(f"Enrolled In: {', '.join(enrolled_courses)}\n")
-
-            print(f"Printed student card to {filename}.")
-        else:
-            print(f"Error: Could not print card, student {student_id} not found.")
     def enrol_instrument(self, id, instrument, grade):
         # add a new instrument for a student
         student = self.find_student_by_id(id)
@@ -649,56 +577,6 @@ class ScheduleManager:
             f"from Course ID {old_course_id} to Course ID {new_course_id}."
         )
 
-
-
-    
-    def view_schedule(self, user_id, date):
-        #take a look of the timetable
-        user = self.find_user_by_id(user_id)
-
-        if not user:
-            print("User not found.")
-            return
-
-        result = []
-
-        # Student
-        student = self.find_student_by_id(user_id)
-
-        if student:
-            for course_id in student.enrolled_course_ids:
-                course = self.find_course_by_id(course_id)
-
-                if course:
-                    for lesson in course.lessons:
-                        if lesson["date"] == date:
-                            result.append((course, lesson))
-
-        # Teacher
-        else:
-            teacher = self.find_teacher_by_id(user_id)
-
-            if teacher:
-                for course in self.courses:
-                    if course.teacher_id == user_id:
-                        for lesson in course.lessons:
-                            if lesson["date"] == date:
-                                result.append((course, lesson))
-
-        if not result:
-            print(f"No lessons found on {date}.")
-            return
-
-        # Sort lessons by time
-        result.sort(key=lambda x: x[1]["time"])
-
-        print(f"\n---Schedule for {date}---")
-        for i, (course, lesson) in enumerate(result, 1):
-            print(f"{i}. Course: {course.name}")
-            print(f"   Course ID: {course.id}")
-            print(f"   Time: {lesson['time']}")
-            print(f"   Activity: {lesson['activity']}")
-
     def check_in(self, student_id, course_id, lesson_index):
         """Records a student's attendance for a specific lesson."""
 
@@ -790,168 +668,6 @@ class ScheduleManager:
 
         return True
 
-    def check_attendance(self, user_id):
-        #show the attendance to the teacher or the student
-        user = self.find_user_by_id(user_id)
-
-        if not user:
-            print("User not found.")
-            return
-
-        
-        # Student
-        
-        student = self.find_student_by_id(user_id)
-
-        if student:
-            print("\n========================")
-            print(f"Attendance for {student.name}")
-            print("========================")
-
-            found = False
-
-            for course_id in student.enrolled_course_ids:
-                course = self.find_course_by_id(course_id)
-
-                if not course:
-                    continue
-
-                for lesson_index, lesson in enumerate(course.lessons, 1):
-
-                    status = "Absent"
-
-                    for record in self.attendance_log:
-                        if (
-                            record["student_id"] == student.id
-                            and record["course_id"] == course.id
-                            and record["lesson_index"] == lesson_index
-                        ):
-                            status = "Present"
-                            break
-
-                    print(f"\nCourse: {course.name}")
-                    print(f"Date: {lesson['date']}")
-                    print(f"Time: {lesson['time']}")
-                    print(f"Activity: {lesson['activity']}")
-                    print(f"Status: {status}")
-
-                    found = True
-
-            if not found:
-                print("No lessons found.")
-
-            return
-
-        
-        # Teacher
-        
-        teacher = self.find_teacher_by_id(user_id)
-
-        if teacher:
-            teacher_courses = []
-
-            for course in self.courses:
-                if course.teacher_id == teacher.id:
-                    teacher_courses.append(course)
-
-            if not teacher_courses:
-                print("No courses found.")
-                return
-
-            print("\n========================")
-            print(f"Your Courses - {teacher.name}")
-            print("========================")
-
-            for i, course in enumerate(teacher_courses, 1):
-                print(f"{i}. {course.name}")
-
-            while True:
-                choice = input("\nPlease choose a course: ")
-
-                if not choice.isdigit():
-                    print("Please enter a valid number.")
-                    continue
-
-                choice = int(choice)
-
-                if choice < 1 or choice > len(teacher_courses):
-                    print("Invalid choice.")
-                    continue
-
-                course = teacher_courses[choice - 1]
-                break
-
-            if not course.lessons:
-                print("No lessons found.")
-                return
-
-            print("\n========================")
-            print(f"Lessons - {course.name}")
-            print("========================")
-
-            for i, lesson in enumerate(course.lessons, 1):
-                print(
-                    f"{i}. Date: {lesson['date']}, "
-                    f"Time: {lesson['time']}, "
-                    f"Activity: {lesson['activity']}"
-                )
-
-            while True:
-                choice = input("\nPlease choose a lesson: ")
-
-                if not choice.isdigit():
-                    print("Please enter a valid number.")
-                    continue
-
-                choice = int(choice)
-
-                if choice < 1 or choice > len(course.lessons):
-                    print("Invalid choice.")
-                    continue
-
-                lesson_index = choice
-                lesson = course.lessons[lesson_index - 1]
-                break
-
-            print("\n========================")
-            print(f"Attendance - {course.name}")
-            print("========================")
-            print(f"Date: {lesson['date']}")
-            print(f"Time: {lesson['time']}")
-            print(f"Activity: {lesson['activity']}")
-            print()
-
-            if not course.enrolled_student_ids:
-                print("No students enrolled.")
-                return
-
-            for student_id in course.enrolled_student_ids:
-
-                student = self.find_student_by_id(student_id)
-
-                status = "Absent"
-
-                for record in self.attendance_log:
-                    if (
-                        record["student_id"] == student_id
-                        and record["course_id"] == course.id
-                        and record["lesson_index"] == lesson_index
-                    ):
-                        status = "Present"
-                        break
-
-                if student:
-                    print(f"Student ID: {student.id}")
-                    print(f"Student: {student.name}")
-                    print(f"Status: {status}")
-                else:
-                    print(f"Student ID: {student_id}")
-                    print(f"Status: {status}")
-
-                print()
-
-            return
-
     def valid_name(self, name):
         # Check name length
         if len(name) < 2 or len(name) > 30:
@@ -1037,97 +753,6 @@ class ScheduleManager:
         )
 
         return True
-    def remove_instrument(self, instrument):
-        #remove an instrument from a list
-        if instrument in self.school_data["instruments"]:
-            self.school_data["instruments"].remove(instrument)
-            print(f"{instrument} has been removed.")
-        else:
-            print(f"{instrument} does not exist.")
-    def teacher_applications(self):
-        #see who apply to be a teacher
-        print("\n ---Teacher Applications---")
-
-        applications = self.school_data["applications"]
-
-        if len(applications) == 0:
-            print("No teacher applications.")
-            return
-
-        while True:
-            print("\n--- Teacher Applications ---")
-            #show all the application
-            for number, application in enumerate(applications, start=1):
-                print(f"\n{number}.")
-                print(f"Name: {application['name']}")
-                print(f"Speciality: {application['speciality']}")
-                print(f"Description: {application['description']}")
-
-            print("\nq. Return")
-
-            choice = input("Please select an application: ")
-
-            if choice.lower() == "q":
-                return
-
-            if not choice.isdigit():
-                print("Invalid choice.")
-                continue
-
-            choice = int(choice)
-
-            if choice < 1 or choice > len(applications):
-                print("Invalid choice.")
-                continue
-
-            application = applications[choice - 1]
-
-            print("\n--- Application Information ---")
-            print(f"Name: {application['name']}")
-            print(f"Speciality: {application['speciality']}")
-            print(f"Description: {application['description']}")
-
-            print("\n1. Approve")
-            print("2. Ignore and Delete")
-            print("q. Cancel")
-
-            action = input("Please enter your choice: ")
-            #choose what to do with the application
-            if action == "1":
-                teacher_id = self.school_data["next_user_id"]
-
-                new_teacher = TeacherUser(
-                    teacher_id,
-                    application["name"],
-                    application["password"],
-                    application["speciality"],
-                    application["description"]
-                )
-
-                self.teachers.append(new_teacher)
-
-                self.school_data["next_user_id"] += 1
-
-                applications.remove(application)
-
-                self._save_data()
-
-                print("\nTeacher application approved.")
-                print(f"Teacher ID: {teacher_id}")
-                print(f"Teacher Name: {new_teacher.name}")
-
-            elif action == "2":
-                applications.remove(application)
-
-                self._save_data()
-
-                print("\nTeacher application ignored and deleted.")
-
-            elif action.lower() == "q":
-                print("Action cancelled.")
-
-            else:
-                print("Invalid choice.")
     def _save_data(self):
         """Converts object lists back to dictionaries and saves to JSON."""
 

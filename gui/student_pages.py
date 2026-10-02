@@ -24,23 +24,23 @@ def show_student_page(manager, user):
     if "student_page" not in st.session_state:
         st.session_state.student_page = "Profile"
 
-    if st.sidebar.button("Profile"):
+    if st.sidebar.button("Profile", width="stretch"):
         st.session_state.student_page = "Profile"
         st.rerun()
 
-    if st.sidebar.button("Enrollment"):
+    if st.sidebar.button("Enrollment", width="stretch"):
         st.session_state.student_page = "Enrollment"
         st.rerun()
 
-    if st.sidebar.button("Course"):
+    if st.sidebar.button("Course", width="stretch"):
         st.session_state.student_page = "Course"
         st.rerun()
 
-    if st.sidebar.button("Daily Roster"):
+    if st.sidebar.button("Daily Roster", width="stretch"):
         st.session_state.student_page = "Daily Roster"
         st.rerun()
 
-    if st.sidebar.button("Logout"):
+    if st.sidebar.button("Logout", width="stretch"):
         st.session_state.user = None
         st.session_state.student_page = "Profile"
         st.rerun()
@@ -894,6 +894,215 @@ def show_student_page(manager, user):
                             st.rerun()
 
                 st.divider()
+                # =================================================
+                # Switch Course
+                # =================================================
+
+                if st.button(
+                    "Switch Course",
+                    key=f"switch_course_{course.id}",
+                    width="stretch"
+                ):
+
+                    st.session_state.switch_course_id = (
+                        course.id
+                    )
+
+                    st.rerun()
+
+                # -------------------------------------------------
+                # Switch Course confirmation
+                # -------------------------------------------------
+
+                if (
+                    st.session_state.get(
+                        "switch_course_id"
+                    )
+                    == course.id
+                ):
+
+                    st.warning(
+                        "Please confirm your identity and "
+                        "select the new course."
+                    )
+
+                    # ---------------------------------------------
+                    # Student password
+                    # ---------------------------------------------
+
+                    student_password = st.text_input(
+                        "Please enter your CURRENT password.",
+                        type="password",
+                        key=(
+                            f"switch_student_password_"
+                            f"{course.id}"
+                        )
+                    )
+
+                    # ---------------------------------------------
+                    # Find courses that the student can switch to
+                    # ---------------------------------------------
+
+                    switchable_courses = []
+
+                    for new_course in manager.courses:
+
+                        # Do not switch to the current course
+                        if new_course.id == course.id:
+                            continue
+
+                        # Student must not already be enrolled
+                        if (
+                            new_course.id
+                            in user.enrolled_course_ids
+                        ):
+                            continue
+
+                        # Student must have the required instrument
+                        if new_course.instrument not in user.grades:
+                            continue
+
+                        # Student grade must match the new course
+                        if (
+                            user.grades[new_course.instrument]
+                            != new_course.grade
+                        ):
+                            continue
+
+                        # New course must have space
+                        if (
+                            len(new_course.enrolled_student_ids)
+                            >= new_course.max_student
+                        ):
+                            continue
+
+                        switchable_courses.append(new_course)
+
+                    if len(switchable_courses) == 0:
+
+                        st.info(
+                            "There are no courses available "
+                            "for you to switch to."
+                        )
+
+                    else:
+
+                        selected_new_course = st.selectbox(
+                            "Please choose the new course.",
+                            switchable_courses,
+                            format_func=lambda c: (
+                                f"Course ID {c.id} | "
+                                f"{c.name} | "
+                                f"{c.instrument} | "
+                                f"Grade {c.grade}"
+                            ),
+                            key=(
+                                f"switch_new_course_"
+                                f"{course.id}"
+                            )
+                        )
+
+                        new_course_password = st.text_input(
+                            "Please enter the NEW course password.",
+                            type="password",
+                            key=(
+                                f"switch_course_password_"
+                                f"{course.id}"
+                            )
+                        )
+
+                        col1, col2 = st.columns(2)
+
+                        with col1:
+
+                            if st.button(
+                                "Confirm Switch",
+                                key=(
+                                    f"confirm_switch_"
+                                    f"{course.id}"
+                                ),
+                                width="stretch"
+                            ):
+
+                                # ---------------------------------
+                                # Check student's current password
+                                # ---------------------------------
+
+                                if (
+                                    student_password
+                                    != user.password
+                                ):
+
+                                    st.error(
+                                        "The current password is incorrect."
+                                    )
+
+                                else:
+
+                                    old_course_id = course.id
+                                    new_course_id = (
+                                        selected_new_course.id
+                                    )
+
+                                    # ---------------------------------
+                                    # Use backend switch_course()
+                                    # ---------------------------------
+
+                                    manager.switch_course(
+                                        user.id,
+                                        old_course_id,
+                                        new_course_id,
+                                        new_course_password
+                                    )
+
+                                    # ---------------------------------
+                                    # Check whether the switch succeeded
+                                    # ---------------------------------
+
+                                    if (
+                                        new_course_id
+                                        in user.enrolled_course_ids
+                                        and
+                                        old_course_id
+                                        not in user.enrolled_course_ids
+                                    ):
+
+                                        manager._save_data()
+
+                                        del st.session_state.switch_course_id
+
+                                        st.session_state.student_page = (
+                                            "Course Switch Success"
+                                        )
+
+                                        st.rerun()
+
+                                    else:
+
+                                        st.error(
+                                            "The course switch could not "
+                                            "be completed. Please check "
+                                            "the new course password and "
+                                            "course requirements."
+                                        )
+
+                        with col2:
+
+                            if st.button(
+                                "Cancel",
+                                key=(
+                                    f"cancel_switch_"
+                                    f"{course.id}"
+                                ),
+                                width="stretch"
+                            ):
+
+                                del st.session_state.switch_course_id
+
+                                st.rerun()
+
+                st.divider()
+
 
                 
         # =====================================================
@@ -1510,6 +1719,28 @@ def show_student_page(manager, user):
     # Daily Roster
     # =========================================================
 
+    # =========================================================
+    # Course Switch Success
+    # =========================================================
+
+    elif page == "Course Switch Success":
+
+        st.title("Course Switched")
+
+        st.success(
+            "You have successfully switched to the new course!"
+        )
+
+        st.write(
+            "Your previous course has been replaced by the new course."
+        )
+
+        if st.button("OK"):
+
+            st.session_state.student_page = "Course"
+
+            st.rerun()
+
     elif page == "Daily Roster":
 
         st.title("Daily Roster")
@@ -1925,22 +2156,18 @@ def show_student_page(manager, user):
                     # Student Check In
                     # -------------------------------------------------
 
-                    if (
-                        now >= lesson_datetime
-                        and now <= lesson_end
-                    ):
+                    if now < lesson_datetime:
 
-                        st.error("Absent")
+                        st.info("Check-in is not available yet.")
 
-                        st.write(
-                            "Are you ready to check in?"
-                        )
+                    elif now <= lesson_end:
+
+                        st.info("Check-in is currently available.")
 
                         if st.button(
                             "Student Check In",
                             width="stretch"
                         ):
-
                             st.session_state.student_check_in_confirm = True
                             st.rerun()
 

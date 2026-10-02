@@ -25,19 +25,19 @@ def show_teacher_page(manager, user):
     if "teacher_page" not in st.session_state:
         st.session_state.teacher_page = "Profile"
 
-    if st.sidebar.button("Profile"):
+    if st.sidebar.button("Profile", width="stretch"):
         st.session_state.teacher_page = "Profile"
         st.rerun()
 
-    if st.sidebar.button("Course"):
+    if st.sidebar.button("Course", width="stretch"):
         st.session_state.teacher_page = "Course"
         st.rerun()
 
-    if st.sidebar.button("Daily Roster"):
+    if st.sidebar.button("Daily Roster", width="stretch"):
         st.session_state.teacher_page = "Daily Roster"
         st.rerun()
 
-    if st.sidebar.button("Logout"):
+    if st.sidebar.button("Logout", width="stretch"):
         st.session_state.user = None
         st.session_state.teacher_page = "Profile"
         st.rerun()
