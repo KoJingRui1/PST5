@@ -1,12 +1,17 @@
 {
     "students": [
         {
-            "id": 7,
+            "id": 8,
             "name": "aa",
             "password": "aa",
-            "enrolled_course_ids": [],
+            "enrolled_course_ids": [
+                4,
+                5
+            ],
             "grades": {
-                "piano": 1
+                "piano": 1,
+                "guitar": 1,
+                "Voilin": 1
             }
         }
     ],
@@ -14,43 +19,110 @@
         {
             "id": 3,
             "name": "sda",
-            "password": "ss",
-            "speciality": "piano",
-            "description": "asaddsasa"
-        },
-        {
-            "id": 5,
-            "name": "aaa",
             "password": "aa",
-            "speciality": "guitar",
-            "description": "ass"
+            "speciality": "piano",
+            "description": "asaddsasadas"
         },
         {
             "id": 6,
             "name": "aaa",
-            "password": "a",
+            "password": "aa",
             "speciality": "piano",
             "description": "aaaaaa"
         }
     ],
-    "courses": [],
+    "courses": [
+        {
+            "id": 4,
+            "name": "aa",
+            "instrument": "piano",
+            "teacher_id": 3,
+            "grade": 1,
+            "password": "aa",
+            "description": "ssss",
+            "max_student": 10,
+            "enrolled_student_ids": [
+                8
+            ],
+            "lessons": [
+                {
+                    "date": "2026-10-02",
+                    "time": "11:20",
+                    "activity": "assa"
+                },
+                {
+                    "date": "2026-10-02",
+                    "time": "14:30",
+                    "activity": "asas"
+                },
+                {
+                    "date": "2026-10-03",
+                    "time": "16:38",
+                    "activity": "dsd"
+                }
+            ]
+        },
+        {
+            "id": 5,
+            "name": "assas",
+            "instrument": "piano",
+            "teacher_id": 6,
+            "grade": 1,
+            "password": "aa",
+            "description": "dsadasd",
+            "max_student": 10,
+            "enrolled_student_ids": [
+                8
+            ],
+            "lessons": [
+                {
+                    "date": "2026-10-02",
+                    "time": "16:31",
+                    "activity": "aaa"
+                }
+            ]
+        }
+    ],
     "admin": [
         {
             "id": 1,
-            "name": "aa",
-            "password": "aa"
-        },
-        {
-            "id": 4,
             "name": "aaa",
             "password": "aa"
         }
     ],
-    "attendance": [],
+    "attendance": [
+        {
+            "student_id": 8,
+            "course_id": 4,
+            "lesson_index": 2,
+            "date": "2026-10-02",
+            "time": "14:30",
+            "activity": "asas",
+            "timestamp": "2026-10-02T16:15:33.246465"
+        },
+        {
+            "student_id": 8,
+            "course_id": 4,
+            "lesson_index": 1,
+            "date": "2026-10-02",
+            "time": "11:20",
+            "activity": "assa",
+            "timestamp": "2026-10-02T16:26:24.248769"
+        },
+        {
+            "student_id": 8,
+            "course_id": 5,
+            "lesson_index": 1,
+            "date": "2026-10-02",
+            "time": "16:31",
+            "activity": "aaa",
+            "timestamp": "2026-10-02T16:57:56.061365"
+        }
+    ],
     "school_data": {
         "applications": [],
-        "next_user_id": 8,
-        "next_course_id": 1,
+        "next_user_id": 9,
+        "next_course_id": 6,
         "instruments": [
             "piano",
             "guitar",
