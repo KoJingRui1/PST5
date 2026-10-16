@@ -6,7 +6,7 @@ import datetime
 from app.student import StudentUser
 from app.teacher import TeacherUser, Course
 from app.admin import AdminUser
-
+import csv
 class ScheduleManager:
     """The main controller for all business logic and data handling."""
     def __init__(self, data_path="data/msms.json"):
@@ -17,6 +17,7 @@ class ScheduleManager:
         self.courses = []                           #the courses
         self.admins = []                            #the admin
         self.attendance_log = []                    #the attendance log
+        self.finance_log = []                       #the finance log
         self.school_data = {                
             "applications": [],                     #aplication of a teacher
             "next_user_id": 1,                      #record the next user id
@@ -100,6 +101,8 @@ class ScheduleManager:
                 self.courses.append(course)
             #get data of attendance
             self.attendance_log = data.get("attendance", [])
+            #get data of financial
+            self.finance_log = data.get("finance_log", [])
             #get data of the school data
             self.school_data = data.get("school_data", {
                 "applications": [],
@@ -504,79 +507,6 @@ class ScheduleManager:
             f"Student ID {student_id} successfully enrolled in "
             f"Course ID {course_id}."
         )
-
-    def switch_course(self, student_id, old_course_id, new_course_id, password):
-        # Find old course
-        old_course = self.find_course_by_id(old_course_id)
-
-        if not old_course:
-            print("Old course not found.")
-            return
-
-        # Find new course
-        new_course = self.find_course_by_id(new_course_id)
-
-        if not new_course:
-            print("New course not found.")
-            return
-
-        # Check whether student is currently enrolled in the old course
-        student = self.find_student_by_id(student_id)
-
-        if not student:
-            print("Student not found.")
-            return
-
-        if old_course_id not in student.enrolled_course_ids:
-            print("Student is not enrolled in the old course.")
-            return
-
-        # Check whether student is already enrolled in the new course
-        if new_course_id in student.enrolled_course_ids:
-            print("Student is already enrolled in the new course.")
-            return
-
-        # Check new course capacity
-        if len(new_course.enrolled_student_ids) >= new_course.max_student:
-            print("New course is full.")
-            return
-
-        # Check new course password
-        if password != new_course.password:
-            print("Incorrect course password.")
-            return
-
-        # Check whether student has the required instrument
-        if new_course.instrument not in student.grades:
-            print(
-                f"Student does not have the required instrument: "
-                f"{new_course.instrument}."
-            )
-            return
-
-        # Check whether student's grade matches the new course
-        student_grade = student.grades[new_course.instrument]
-
-        if student_grade != new_course.grade:
-            print(
-                f"Student grade does not match the new course requirement. "
-                f"Required: {new_course.grade}, Student: {student_grade}."
-            )
-            return
-
-        # Remove student from old course
-        student.enrolled_course_ids.remove(old_course_id)
-        old_course.enrolled_student_ids.remove(student_id)
-
-        # Add student to new course
-        student.enrolled_course_ids.append(new_course_id)
-        new_course.enrolled_student_ids.append(student_id)
-
-        print(
-            f"Student ID {student_id} successfully switched "
-            f"from Course ID {old_course_id} to Course ID {new_course_id}."
-        )
-
     def check_in(self, student_id, course_id, lesson_index):
         """Records a student's attendance for a specific lesson."""
 
@@ -753,6 +683,49 @@ class ScheduleManager:
         )
 
         return True
+    def record_payment(self, student_id, amount, method):
+        student = self.find_student_by_id(student_id)
+
+        if not student:
+            print("Student not found.")
+            return False
+
+        payment_record = {
+            "student_id": student_id,
+            "amount": amount,
+            "method": method,
+            "timestamp": datetime.datetime.now().isoformat()
+        }
+
+        self.finance_log.append(payment_record)
+        self._save_data()
+
+        print("Payment recorded successfully.")
+        return True
+    def get_payment_history(self, student_id):
+        """Returns a list of all payments for a given student."""
+        return [p for p in self.finance_log if p["student_id"] == student_id]
+    def export_report(self, kind, out_path):
+        print(f"Exporting {kind} report to {out_path}...")
+
+        if kind == "finance":
+            data_to_export = self.finance_log
+            headers = ["student_id", "amount", "method", "timestamp"]
+
+        elif kind == "attendance":
+            data_to_export = self.attendance_log
+            headers = ["student_id", "course_id", "timestamp"]
+
+        else:
+            print("Error: Unknown report type.")
+            return
+
+        with open(out_path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=headers)
+            writer.writeheader()
+            writer.writerows(data_to_export)
+
+        print(f"Report exported successfully to {out_path}")
     def _save_data(self):
         """Converts object lists back to dictionaries and saves to JSON."""
 
@@ -762,7 +735,8 @@ class ScheduleManager:
             "courses": [c.__dict__ for c in self.courses],      #save courses data
             "admin": [a.__dict__ for a in self.admins],         #save admin data
             "attendance": self.attendance_log,                  #save attendance
-            "school_data": self.school_data                     #save school data
+            "school_data": self.school_data,                     #save school data
+            "finance_log": self.finance_log
         }
 
         with open(self.data_path, "w") as f:
