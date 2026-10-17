@@ -37,9 +37,6 @@ def show_teacher_page(manager, user):
         st.session_state.teacher_page = "Daily Roster"
         st.rerun()
 
-    if st.sidebar.button("Financial", width="stretch"):
-        st.session_state.teacher_page = "Daily Roster"
-        st.rerun()
 
     if st.sidebar.button("Logout", width="stretch"):
         st.session_state.user = None

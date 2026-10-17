@@ -63,8 +63,10 @@ def show_admin_page(manager, user):
 
     if st.sidebar.button("Daily Roster", width="stretch"):
         st.session_state.admin_page = "Daily Roster"
+    if st.sidebar.button("Financial", width="stretch"):
+        st.session_state.admin_page = "Financial"
+        st.rerun()
     st.sidebar.divider()
-
     if st.sidebar.button("Logout", width="stretch"):
         st.session_state.user = None
         st.session_state.auth_page = "home"
@@ -4066,3 +4068,239 @@ def show_admin_page(manager, user):
                             )
 
                             st.rerun()
+    elif page == "Financial":
+        """Renders the UI for all financial operations."""
+        st.header("Finance & Payments")
+
+        # --- Section 1: Record a Payment ---
+        st.subheader("Record New Payment")
+
+        with st.form("payment_form"):
+
+            # Search for student
+            left, right = st.columns([1, 6])
+
+            with left:
+                search_term_type = st.selectbox(
+                    "Search by",
+                    ["-", "ID", "NAME"]
+                )
+
+            with right:
+                if search_term_type == "ID":
+                    search_term = st.text_input(
+                        "Please enter the student ID."
+                    )
+
+                elif search_term_type == "NAME":
+                    search_term = st.text_input(
+                        "Please enter the student name."
+                    )
+
+                else:
+                    search_term = ""
+
+            # Filter students
+            filtered_students = []
+
+            for student in manager.students:
+
+                if search_term_type == "-":
+                    matched = True
+
+                elif search_term_type == "ID":
+                    try:
+                        search_id = int(search_term)
+                        matched = student.id == search_id
+                    except ValueError:
+                        matched = False
+
+                elif search_term_type == "NAME":
+                    matched = search_term.strip().lower() in student.name.lower()
+
+                else:
+                    matched = False
+
+                if matched:
+                    filtered_students.append(student)
+
+            # Select student
+            if filtered_students:
+
+                student_options = {
+                    f"{student.id} - {student.name}": student
+                    for student in filtered_students
+                }
+
+                selected_student_label = st.selectbox(
+                    "Select Student",
+                    list(student_options.keys())
+                )
+
+                selected_student = student_options[selected_student_label]
+                student_id = selected_student.id
+
+            else:
+
+                st.warning("No students found.")
+
+                selected_student = None
+                student_id = None
+
+            # Payment information
+            amount = st.number_input(
+                "Payment Amount",
+                min_value=0.01,
+                step=0.01
+            )
+
+            method = st.text_input(
+                "Payment Method (e.g., Credit Card, Cash)"
+            )
+
+            submitted = st.form_submit_button("Record Payment")
+
+            if submitted:
+
+                if selected_student is None:
+                    st.error("Please select a student.")
+
+                elif not method.strip():
+                    st.error("Please enter a payment method.")
+
+                else:
+                    success = manager.record_payment(
+                        student_id,
+                        amount,
+                        method
+                    )
+
+                    if success:
+                        st.success(
+                            f"Payment of {amount} for "
+                            f"{selected_student.name} recorded."
+                        )
+
+        # --- Section 2: View Payment History ---
+        st.subheader("View Student Payment History")
+
+        history_left, history_right = st.columns([1, 6])
+
+        with history_left:
+            history_search_type = st.selectbox(
+                "Search by",
+                ["-", "ID", "NAME"],
+                key="history_search_type"
+            )
+
+        with history_right:
+
+            if history_search_type == "ID":
+                history_search_term = st.text_input(
+                    "Please enter the student ID.",
+                    key="history_search_id"
+                )
+
+            elif history_search_type == "NAME":
+                history_search_term = st.text_input(
+                    "Please enter the student name.",
+                    key="history_search_name"
+                )
+
+            else:
+                history_search_term = ""
+
+        # Filter students for payment history
+        history_filtered_students = []
+
+        for student in manager.students:
+
+            if history_search_type == "-":
+                matched = True
+
+            elif history_search_type == "ID":
+                try:
+                    search_id = int(history_search_term)
+                    matched = student.id == search_id
+                except ValueError:
+                    matched = False
+
+            elif history_search_type == "NAME":
+                matched = (
+                    history_search_term.strip().lower()
+                    in student.name.lower()
+                )
+
+            else:
+                matched = False
+
+            if matched:
+                history_filtered_students.append(student)
+
+        if history_filtered_students:
+
+            history_student_options = {
+                f"{student.id} - {student.name}": student
+                for student in history_filtered_students
+            }
+
+            history_student_label = st.selectbox(
+                "Select Student to View History",
+                list(history_student_options.keys())
+            )
+
+            history_student = history_student_options[
+                history_student_label
+            ]
+
+            history_student_id = history_student.id
+
+            history = manager.get_payment_history(
+                history_student_id
+            )
+
+            if history:
+                df = pd.DataFrame(history)
+                st.dataframe(df)
+
+            else:
+                st.info(
+                    "This student has no payment history."
+                )
+
+        else:
+            st.warning("No students found.")
+
+    # --- Section 3: Export Report ---
+    st.subheader("Export Report")
+
+    report_type = st.selectbox(
+        "Report Type",
+        ["Finance", "Attendance"],
+        key="report_type"
+    )
+
+    if st.button("Export Report"):
+
+        if report_type == "Finance":
+            data = manager.finance_log
+            file_name = "finance_report.csv"
+
+        else:
+            data = manager.attendance_log
+            file_name = "attendance_report.csv"
+
+        if data:
+            df = pd.DataFrame(data)
+
+            csv_data = df.to_csv(index=False)
+
+            st.download_button(
+                label="Download CSV",
+                data=csv_data,
+                file_name=file_name,
+                mime="text/csv"
+            )
+
+        else:
+            st.info("There is no data to export.")
