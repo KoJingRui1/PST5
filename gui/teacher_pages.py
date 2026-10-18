@@ -1044,26 +1044,17 @@ def show_teacher_page(manager, user):
                                                     )
                                                 ):
 
-                                                    manager.attendance_log = [
-                                                        record
-                                                        for record
-                                                        in manager.attendance_log
-                                                        if not (
-                                                            record["student_id"]
-                                                            == student.id
-                                                            and
-                                                            record["course_id"]
-                                                            == target_course.id
-                                                            and
-                                                            record["lesson_index"]
-                                                            == lesson_index
-                                                        )
-                                                    ]
+                                                    success = manager.delete_attendance(
+                                                        student.id,
+                                                        target_course.id,
+                                                        selected_lesson_index
+                                                    )
 
-                                                    manager._save_data()
-
-                                                    st.rerun()
-
+                                                    if success:
+                                                        manager._save_data()
+                                                        st.rerun()
+                                                    else:
+                                                        st.error("Failed to delete attendance.")
                                             else:
 
                                                 if st.button(
@@ -1076,27 +1067,17 @@ def show_teacher_page(manager, user):
                                                     )
                                                 ):
 
-                                                    attendance_record = {
-                                                        "student_id": student.id,
-                                                        "course_id": target_course.id,
-                                                        "lesson_index": lesson_index,
-                                                        "date": lesson["date"],
-                                                        "time": lesson["time"],
-                                                        "activity": lesson["activity"],
-                                                        "timestamp": (
-                                                            datetime.datetime.now()
-                                                            .isoformat()
-                                                        )
-                                                    }
-
-                                                    manager.attendance_log.append(
-                                                        attendance_record
+                                                    success = manager.give_attendance(
+                                                        student.id,
+                                                        target_course.id,
+                                                        lesson_index
                                                     )
 
-                                                    manager._save_data()
-
-                                                    st.rerun()
-
+                                                    if success:
+                                                        manager._save_data()
+                                                        st.rerun()
+                                                    else:
+                                                        st.error("Failed to give attendance.")
                             # =================================================
                             # Future Lesson
                             # =================================================
@@ -1746,29 +1727,17 @@ def show_teacher_page(manager, user):
                                             )
                                         ):
 
-                                            attendance_record = {
-                                                "student_id": student.id,
-                                                "course_id": target_course.id,
-                                                "lesson_index": (
-                                                    selected_lesson_index
-                                                ),
-                                                "date": lesson["date"],
-                                                "time": lesson["time"],
-                                                "activity": lesson["activity"],
-                                                "timestamp": (
-                                                    datetime.datetime.now()
-                                                    .isoformat()
-                                                )
-                                            }
-
-                                            manager.attendance_log.append(
-                                                attendance_record
+                                            success = manager.delete_attendance(
+                                                student.id,
+                                                target_course.id,
+                                                lesson_index
                                             )
 
-                                            manager._save_data()
-
-                                            st.rerun()
-
+                                            if success:
+                                                manager._save_data()
+                                                st.rerun()
+                                            else:
+                                                st.error("Failed to delete attendance.")
                                 # -----------------------------------------
                                 # Future Lesson
                                 # -----------------------------------------

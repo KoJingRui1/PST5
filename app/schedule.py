@@ -7,6 +7,7 @@ from app.student import StudentUser
 from app.teacher import TeacherUser, Course
 from app.admin import AdminUser
 import csv
+import logging
 class ScheduleManager:
     """The main controller for all business logic and data handling."""
     def __init__(self, data_path="data/msms.json"):
@@ -114,6 +115,26 @@ class ScheduleManager:
             #if the file is not found, this will be shown
 
             print("Data file not found. Starting with a clean state.")
+    def disenrol_course(self, student_id, course_id):
+        """Removes a student from a course."""
+
+        student = self.find_student_by_id(student_id)
+        course = self.find_course_by_id(course_id)
+
+        if student is None or course is None:
+            return False
+
+        if course_id not in student.enrolled_course_ids:
+            return False
+
+        student.enrolled_course_ids.remove(course_id)
+
+        if student_id in course.enrolled_student_ids:
+            course.enrolled_student_ids.remove(student_id)
+        
+        self._save_data()
+        logging.info(f"Student ID {student_id} successfully disenrolled from Course ID {course_id}.")
+        return True
     def find_student_by_id(self, id):
         #find a student by enter id 
         for student in self.students:
@@ -226,14 +247,14 @@ class ScheduleManager:
         # Remove the course itself.
         self.courses.remove(course)
 
-        print(f"Course ID {course_id} has been successfully deleted.")
+        logging.info(f"Course ID {course_id} was successfully deleted.")
         return True
     def remove_user(self, id):
         # remove a user
         for teacher in self.teachers:
             if teacher.id == id:
                 self.teachers.remove(teacher)
-                print(f"Teacher with id {id} is successfully deleted.")
+                logging.info(f"Teacher ID {id} was successfully deleted.")
 
                 # remove every course from the teacher
                 for course in self.courses.copy():
@@ -245,7 +266,7 @@ class ScheduleManager:
         for student in self.students:
             if student.id == id:
                 self.students.remove(student)
-                print(f"Student with id {id} is successfully deleted.")
+                logging.info(f"Student ID {id} was successfully deleted.")
 
                 # remove the student from enrolled course lists
                 for course in self.courses:
@@ -257,7 +278,7 @@ class ScheduleManager:
         for admin in self.admins:
             if admin.id == id:
                 self.admins.remove(admin)
-                print(f"Admin with id {id} is successfully deleted.")
+                logging.info(f"Admin ID {id} was successfully deleted.")
                 return
 
         print("No user found.")
@@ -272,6 +293,7 @@ class ScheduleManager:
         }
 
         self.school_data["applications"].append(application)
+        logging.info(f"Teacher application from {name} was successfully submitted.")
         self._save_data()
     def add_teacher(self, name, password, speciality, description):
         #add a teacher by using Teacher User
@@ -279,6 +301,7 @@ class ScheduleManager:
         new_teacher = TeacherUser(new_id, name, password, speciality, description)
         self.teachers.append(new_teacher)
         self.school_data["next_user_id"]+=1
+        logging.info(f"Teacher ID {new_id} was successfully created. Name: {name}")
         return new_teacher
     def add_student(self, name, password):
         #add a new student by using Student User
@@ -286,6 +309,7 @@ class ScheduleManager:
         new_student = StudentUser(new_id, name, password)
         self.students.append(new_student)
         self.school_data["next_user_id"]+=1
+        logging.info(f"Student ID {new_id} was successfully created. Name: {name}")
         return new_student
     def add_admin(self, name, password):
         #add an new admin by using adminuser
@@ -293,6 +317,7 @@ class ScheduleManager:
         new_admin = AdminUser(new_id, name, password)
         self.admins.append(new_admin)
         self.school_data["next_user_id"]+=1
+        logging.info(f"Admin ID {new_id} was successfully created. Name: {name}")
         return new_admin
     def update_user(self, id, **field):
         # update all of the user by their field
@@ -310,7 +335,8 @@ class ScheduleManager:
                 for key, value in field.items():
                     setattr(teacher, key, value)
 
-                print(f"User ID {id} has been successfully updated.")
+                logging.info(f"Teacher ID {id} was successfully updated.")
+                self._save_data()
                 return
 
         for student in self.students:
@@ -318,7 +344,8 @@ class ScheduleManager:
                 for key, value in field.items():
                     setattr(student, key, value)
 
-                print(f"User ID {id} has been successfully updated.")
+                logging.info(f"Student ID {id} was successfully updated.")
+                self._save_data()
                 return
 
         for admin in self.admins:
@@ -326,9 +353,10 @@ class ScheduleManager:
                 for key, value in field.items():
                     setattr(admin, key, value)
 
-                print(f"User ID {id} has been successfully updated.")
+                logging.info(f"Admin ID {id} was successfully updated.")
+                self._save_data()
                 return
-
+        
         print(f"No user found with id {id}.")
     def _remove_teacher_courses(self, teacher_id):
         # Find all courses belonging to this teacher
@@ -377,7 +405,7 @@ class ScheduleManager:
             for key, value in field.items():
                 setattr(course, key, value)
 
-            print(f"Course ID {course_id} has been successfully updated.")
+            logging.info(f"Course ID {course_id} was successfully updated.")
             return
 
         print(f"No course found with id {course_id}.")
@@ -413,11 +441,7 @@ class ScheduleManager:
         self.courses.append(new_course)
         self.school_data["next_course_id"] += 1
 
-        print("Course Created")
-        print(f"ID: {new_course.id}, Name: {new_course.name}, Teacher ID: {new_course.teacher_id}")
-        print(f"Instrument: {new_course.instrument}, Grade: {new_course.grade}")
-        print(f"Description: {new_course.description}")
-        print(f"Enrolled student ID: {new_course.enrolled_student_ids}")
+        logging.info(f"Course ID {new_course.id} was successfully created. Name: {new_course.name}")
 
     def enrol_instrument(self, id, instrument, grade):
         # add a new instrument for a student
@@ -432,10 +456,7 @@ class ScheduleManager:
             return False
 
         student.grades[instrument] = grade
-
-        print(
-            f"Successfully enrolled student ID {id} in {instrument}"
-        )
+        logging.info(f"Student ID {id} successfully enrolled in {instrument} with grade {grade}.")
 
         return True
 
@@ -446,7 +467,7 @@ class ScheduleManager:
         if student:
             if instrument in student.grades:
                 student.grades[instrument] += 1
-                print(f"Student ID {id}, {instrument} successfully upgraded")
+                logging.info(f"Student ID {id} successfully upgraded {instrument}.")
                 return
 
             print("Instrument not found")
@@ -503,10 +524,8 @@ class ScheduleManager:
         student.enrolled_course_ids.append(course_id)
         course.enrolled_student_ids.append(student_id)
 
-        print(
-            f"Student ID {student_id} successfully enrolled in "
-            f"Course ID {course_id}."
-        )
+        logging.info(f"Student ID {student_id} successfully enrolled in Course ID {course_id}.")
+        return True
     def check_in(self, student_id, course_id, lesson_index):
         """Records a student's attendance for a specific lesson."""
 
@@ -591,13 +610,76 @@ class ScheduleManager:
 
         self._save_data()
 
-        print(
-            f"Success: Student {student.name} checked into "
-            f"{course.name}."
-        )
+        logging.info(f"Student ID {student_id} successfully checked in to Course ID {course_id}, Lesson {lesson_index}.")
 
         return True
+    def delete_attendance(
+        self,
+        student_id,
+        course_id,
+        lesson_index
+    ):
+        """Deletes a student's attendance record."""
 
+        self.attendance_log = [
+            record
+            for record in self.attendance_log
+            if not (
+                record["student_id"] == student_id
+                and record["course_id"] == course_id
+                and record["lesson_index"] == lesson_index
+            )
+        ]
+        logging.info(f"Attendance deleted for Student ID {student_id}, Course ID {course_id}, Lesson {lesson_index}.")
+        self._save_data()
+
+        return True
+    def give_attendance(
+        self,
+        student_id,
+        course_id,
+        lesson_index
+    ):
+        """Allows a teacher to manually record attendance."""
+
+        course = self.find_course_by_id(course_id)
+
+        if course is None:
+            return False
+
+        if student_id not in course.enrolled_student_ids:
+            return False
+
+        if lesson_index < 1 or lesson_index > len(course.lessons):
+            return False
+
+        lesson = course.lessons[lesson_index - 1]
+
+        attendance_exists = any(
+            record["student_id"] == student_id
+            and record["course_id"] == course_id
+            and record["lesson_index"] == lesson_index
+            for record in self.attendance_log
+        )
+
+        if attendance_exists:
+            return False
+
+        attendance_record = {
+            "student_id": student_id,
+            "course_id": course_id,
+            "lesson_index": lesson_index,
+            "date": lesson["date"],
+            "time": lesson["time"],
+            "activity": lesson["activity"],
+            "timestamp": datetime.datetime.now().isoformat()
+        }
+
+        self.attendance_log.append(attendance_record)
+        logging.info(f"Teacher manually recorded attendance for Student ID {student_id}, Course ID {course_id}, Lesson {lesson_index}.")
+        self._save_data()
+
+        return True
     def valid_name(self, name):
         # Check name length
         if len(name) < 2 or len(name) > 30:
@@ -616,7 +698,7 @@ class ScheduleManager:
         #add a instrument to the list
         if instrument not in self.school_data["instruments"]:
             self.school_data["instruments"].append(instrument)
-            print(f"{instrument} has been added.")
+            logging.info(f"Instrument {instrument} was successfully added.")
         else:
             print(f"{instrument} already exists.")
     def disenroll_instrument(self, id, instrument):
@@ -658,10 +740,7 @@ class ScheduleManager:
                 )
             ]
 
-        print(
-            f"Successfully disenrolled student ID {id} "
-            f"from {instrument}."
-        )
+        logging.info(f"Student ID {id} successfully disenrolled from {instrument}.")
 
         return True
     def update_enrollment(self, id, instrument, grade):
@@ -677,11 +756,42 @@ class ScheduleManager:
 
         student.grades[instrument] = grade
 
-        print(
-            f"Student ID {id}, {instrument} grade "
-            f"successfully updated to {grade}."
-        )
+        logging.info(f"Student ID {id}, {instrument} grade successfully updated to {grade}.")
+        return True
+    def add_lesson(self, course_id, lesson_date, lesson_time, activity):
+        """Adds a lesson to a course."""
 
+        course = self.find_course_by_id(course_id)
+
+        if course is None:
+            return False
+
+        new_lesson = {
+            "date": str(lesson_date),
+            "time": str(lesson_time),
+            "activity": activity
+        }
+
+        course.lessons.append(new_lesson)
+
+        self._save_data()
+        logging.info(f"Lesson successfully added to Course ID {course_id}.")
+        return True
+    def delete_lesson(self, course_id, lesson_index):
+        """Deletes a lesson from a course."""
+
+        course = self.find_course_by_id(course_id)
+
+        if course is None:
+            return False
+
+        if lesson_index < 0 or lesson_index >= len(course.lessons):
+            return False
+
+        course.lessons.pop(lesson_index)
+
+        self._save_data()
+        logging.info(f"Lesson {lesson_index} successfully deleted from Course ID {course_id}.")
         return True
     def record_payment(self, student_id, amount, method):
         student = self.find_student_by_id(student_id)
@@ -700,7 +810,7 @@ class ScheduleManager:
         self.finance_log.append(payment_record)
         self._save_data()
 
-        print("Payment recorded successfully.")
+        logging.info(f"Payment of {amount} recorded for student ID {student_id}.")
         return True
     def get_payment_history(self, student_id):
         """Returns a list of all payments for a given student."""
@@ -725,7 +835,7 @@ class ScheduleManager:
             writer.writeheader()
             writer.writerows(data_to_export)
 
-        print(f"Report exported successfully to {out_path}")
+        logging.info(f"{kind} report successfully exported to {out_path}.")
     def _save_data(self):
         """Converts object lists back to dictionaries and saves to JSON."""
 

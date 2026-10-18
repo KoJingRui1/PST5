@@ -842,42 +842,23 @@ def show_student_page(manager, user):
 
                                 else:
 
-                                    user.enrolled_course_ids.remove(
+                                    success = manager.disenrol_course(
+                                        user.id,
                                         course.id
                                     )
 
-                                    if (
-                                        user.id
-                                        in course.enrolled_student_ids
-                                    ):
+                                    if success:
+                                        del st.session_state.disenroll_course_id
 
-                                        course.enrolled_student_ids.remove(
-                                            user.id
+                                        st.session_state.student_page = (
+                                            "Course Disenrol Success"
                                         )
 
-                                    manager.attendance_log = [
-                                        record
-                                        for record
-                                        in manager.attendance_log
-                                        if not (
-                                            record.get("student_id")
-                                            == user.id
-                                            and
-                                            record.get("course_id")
-                                            == course.id
+                                        st.rerun()
+                                    else:
+                                        st.error(
+                                            "Failed to disenrol from the course."
                                         )
-                                    ]
-
-                                    manager._save_data()
-
-                                    del st.session_state.disenroll_course_id
-
-                                    st.session_state.student_page = (
-                                        "Course Disenrol Success"
-                                    )
-
-                                    st.rerun()
-
                     with col2:
 
                         if st.button(
@@ -1431,23 +1412,24 @@ def show_student_page(manager, user):
 
                             else:
 
-                                user.enrolled_course_ids.append(
-                                    target_course.id
+                                success = manager.enrol_course(
+                                    user.id,
+                                    target_course.id,
+                                    course_password
                                 )
 
-                                target_course.enrolled_student_ids.append(
-                                    user.id
-                                )
+                                if success:
+                                    del st.session_state.selected_course_id
 
-                                manager._save_data()
+                                    st.session_state.student_page = (
+                                        "Course Enrol Success"
+                                    )
 
-                                del st.session_state.selected_course_id
-
-                                st.session_state.student_page = (
-                                    "Course Enrol Success"
-                                )
-
-                                st.rerun()
+                                    st.rerun()
+                                else:
+                                    st.error(
+                                        "Failed to enrol in the course."
+                                    )
 
                     with col2:
 

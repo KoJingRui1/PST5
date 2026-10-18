@@ -8,8 +8,35 @@
             "grades": {}
         }
     ],
-    "teachers": [],
-    "courses": [],
+    "teachers": [
+        {
+            "id": 3,
+            "name": "aa",
+            "password": "aa",
+            "speciality": "piano",
+            "description": "aa"
+        }
+    ],
+    "courses": [
+        {
+            "id": 1,
+            "name": "aa",
+            "instrument": "piano",
+            "teacher_id": 3,
+            "grade": 1,
+            "password": "aa",
+            "description": "aa",
+            "max_student": 1,
+            "enrolled_student_ids": [],
+            "lessons": [
+                {
+                    "date": "2026-10-18",
+                    "time": "20:55",
+                    "activity": "ssasd"
+                }
+            ]
+        }
+    ],
     "admin": [
         {
             "id": 1,
@@ -20,8 +47,8 @@
     "attendance": [],
     "school_data": {
         "applications": [],
-        "next_user_id": 3,
-        "next_course_id": 1,
+        "next_user_id": 4,
+        "next_course_id": 2,
         "instruments": [
             "piano",
             "guitar"

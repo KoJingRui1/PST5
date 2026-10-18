@@ -2923,7 +2923,6 @@ def show_admin_page(manager, user):
                                     )
 
                                 else:
-
                                     if st.button(
                                         "Delete",
                                         key=(
@@ -2932,14 +2931,15 @@ def show_admin_page(manager, user):
                                             f"{index}"
                                         )
                                     ):
-
-                                        target_course.lessons.pop(
+                                        success = manager.delete_lesson(
+                                            target_course.id,
                                             index
                                         )
 
-                                        manager._save_data()
-
-                                        st.rerun()
+                                        if success:
+                                            st.rerun()
+                                        else:
+                                            st.error("Failed to delete lesson.")
 
 
                     # =================================================
@@ -3013,11 +3013,16 @@ def show_admin_page(manager, user):
                                 "activity": lesson_activity
                             }
 
-                            target_course.lessons.append(
-                                new_lesson
-                            )
+                        success = manager.add_lesson(
+                            target_course.id,
+                            new_lesson
+                        )
 
-                            manager._save_data()
+                        if success:
+                            st.success("Lesson added successfully.")
+                            st.rerun()
+                        else:
+                            st.error("Failed to add lesson.")
 
                             st.success(
                                 "Lesson added successfully!"
@@ -3400,11 +3405,14 @@ def show_admin_page(manager, user):
                     max_student
                 )
 
-                manager.courses.append(new_course)
-
-                manager.school_data[
-                    "next_course_id"
-                ] += 1
+                manager.add_course(
+                    course_name,
+                    selected_teacher.id,
+                    grade,
+                    password,
+                    description,
+                    max_student
+                )
 
                 manager._save_data()
 
@@ -4068,63 +4076,86 @@ def show_admin_page(manager, user):
                             )
 
                             st.rerun()
+    # =========================================================
+    # Financial
+    # =========================================================
     elif page == "Financial":
-        """Renders the UI for all financial operations."""
-        st.header("Finance & Payments")
 
-        # --- Section 1: Record a Payment ---
+        st.title("Finance & Payments")
+
+        # =====================================================
+        # Record New Payment
+        # =====================================================
+
         st.subheader("Record New Payment")
 
         with st.form("payment_form"):
 
-            # Search for student
             left, right = st.columns([1, 6])
 
             with left:
                 search_term_type = st.selectbox(
                     "Search by",
-                    ["-", "ID", "NAME"]
+                    ["-", "ID", "NAME"],
+                    key="finance_payment_search_type"
                 )
 
             with right:
+
                 if search_term_type == "ID":
-                    search_term = st.text_input(
-                        "Please enter the student ID."
+
+                    search_term = st.number_input(
+                        "Please enter the student ID.",
+                        min_value=0,
+                        step=1,
+                        key="finance_payment_id_search"
                     )
 
                 elif search_term_type == "NAME":
+
                     search_term = st.text_input(
-                        "Please enter the student name."
+                        "Please enter the student name.",
+                        key="finance_payment_name_search"
                     )
 
                 else:
+
                     search_term = ""
 
-            # Filter students
+            # -------------------------------------------------
+            # Find Students
+            # -------------------------------------------------
+
             filtered_students = []
 
             for student in manager.students:
 
                 if search_term_type == "-":
+
                     matched = True
 
                 elif search_term_type == "ID":
-                    try:
-                        search_id = int(search_term)
-                        matched = student.id == search_id
-                    except ValueError:
-                        matched = False
+
+                    matched = student.id == int(search_term)
 
                 elif search_term_type == "NAME":
-                    matched = search_term.strip().lower() in student.name.lower()
+
+                    matched = (
+                        search_term.strip().lower()
+                        in student.name.lower()
+                    )
 
                 else:
+
                     matched = False
 
                 if matched:
                     filtered_students.append(student)
 
-            # Select student
+            # -------------------------------------------------
+            # Select Student
+            # -------------------------------------------------
+
             if filtered_students:
 
                 student_options = {
@@ -4134,10 +4165,14 @@ def show_admin_page(manager, user):
 
                 selected_student_label = st.selectbox(
                     "Select Student",
-                    list(student_options.keys())
+                    list(student_options.keys()),
+                    key="finance_payment_student"
                 )
 
-                selected_student = student_options[selected_student_label]
+                selected_student = student_options[
+                    selected_student_label
+                ]
+
                 student_id = selected_student.id
 
             else:
@@ -4147,95 +4182,137 @@ def show_admin_page(manager, user):
                 selected_student = None
                 student_id = None
 
-            # Payment information
+            # -------------------------------------------------
+            # Payment Amount
+            # -------------------------------------------------
+
             amount = st.number_input(
                 "Payment Amount",
                 min_value=0.01,
-                step=0.01
+                step=0.01,
+                key="finance_payment_amount"
             )
+
+            # -------------------------------------------------
+            # Payment Method
+            # -------------------------------------------------
 
             method = st.text_input(
-                "Payment Method (e.g., Credit Card, Cash)"
+                "Payment Method (e.g., Credit Card, Cash)",
+                key="finance_payment_method"
             )
 
-            submitted = st.form_submit_button("Record Payment")
+            submitted = st.form_submit_button(
+                "Record Payment"
+            )
+
+            # -------------------------------------------------
+            # Record Payment
+            # -------------------------------------------------
 
             if submitted:
 
                 if selected_student is None:
-                    st.error("Please select a student.")
+
+                    st.error(
+                        "Please select a student."
+                    )
 
                 elif not method.strip():
-                    st.error("Please enter a payment method.")
+
+                    st.error(
+                        "Please enter a payment method."
+                    )
 
                 else:
+
                     success = manager.record_payment(
                         student_id,
                         amount,
-                        method
+                        method.strip()
                     )
 
                     if success:
+
                         st.success(
-                            f"Payment of {amount} for "
+                            f"Payment of {amount:.2f} for "
                             f"{selected_student.name} recorded."
                         )
 
-        # --- Section 2: View Payment History ---
+        # =====================================================
+        # Payment History
+        # =====================================================
+
         st.subheader("View Student Payment History")
 
         history_left, history_right = st.columns([1, 6])
 
         with history_left:
+
             history_search_type = st.selectbox(
                 "Search by",
                 ["-", "ID", "NAME"],
-                key="history_search_type"
+                key="finance_history_search_type"
             )
 
         with history_right:
 
             if history_search_type == "ID":
-                history_search_term = st.text_input(
+
+                history_search_term = st.number_input(
                     "Please enter the student ID.",
-                    key="history_search_id"
+                    min_value=0,
+                    step=1,
+                    key="finance_history_id_search"
                 )
 
             elif history_search_type == "NAME":
+
                 history_search_term = st.text_input(
                     "Please enter the student name.",
-                    key="history_search_name"
+                    key="finance_history_name_search"
                 )
 
             else:
+
                 history_search_term = ""
 
-        # Filter students for payment history
+        # -----------------------------------------------------
+        # Find Students
+        # -----------------------------------------------------
+
         history_filtered_students = []
 
         for student in manager.students:
 
             if history_search_type == "-":
+
                 matched = True
 
             elif history_search_type == "ID":
-                try:
-                    search_id = int(history_search_term)
-                    matched = student.id == search_id
-                except ValueError:
-                    matched = False
+
+                matched = (
+                    student.id
+                    == int(history_search_term)
+                )
 
             elif history_search_type == "NAME":
+
                 matched = (
                     history_search_term.strip().lower()
                     in student.name.lower()
                 )
 
             else:
+
                 matched = False
 
             if matched:
                 history_filtered_students.append(student)
+
+        # -----------------------------------------------------
+        # Select Student
+        # -----------------------------------------------------
 
         if history_filtered_students:
 
@@ -4246,7 +4323,8 @@ def show_admin_page(manager, user):
 
             history_student_label = st.selectbox(
                 "Select Student to View History",
-                list(history_student_options.keys())
+                list(history_student_options.keys()),
+                key="finance_history_student"
             )
 
             history_student = history_student_options[
@@ -4255,39 +4333,78 @@ def show_admin_page(manager, user):
 
             history_student_id = history_student.id
 
+            # =================================================
+            # IMPORTANT:
+            # Use ScheduleManager method
+            # =================================================
+
             history = manager.get_payment_history(
                 history_student_id
             )
 
             if history:
-                df = pd.DataFrame(history)
-                st.dataframe(df)
+
+                history_df = pd.DataFrame(
+                    history,
+                    columns=[
+                        "student_id",
+                        "amount",
+                        "method",
+                        "timestamp"
+                    ]
+                )
+
+                st.dataframe(
+                    history_df,
+                    hide_index=True,
+                    width="stretch"
+                )
 
             else:
+
                 st.info(
                     "This student has no payment history."
                 )
 
         else:
+
             st.warning("No students found.")
 
-    # --- Section 3: Export Report ---
-    st.subheader("Export Report")
+        # =====================================================
+        # Export Report
+        # =====================================================
 
-    report_type = st.selectbox(
-        "Report Type",
-        ["Finance", "Attendance"],
-        key="report_type"
-    )
+        st.subheader("Export Report")
 
-    if st.button("Export Report"):
+        report_type = st.selectbox(
+            "Report Type",
+            ["Finance", "Attendance"],
+            key="finance_report_type"
+        )
 
-        if report_type == "Finance":
-            out_path = "finance_report.csv"
-            manager.export_report("finance", out_path)
+        if st.button(
+            "Export Report",
+            width="stretch"
+        ):
 
-        else:
-            out_path = "attendance_report.csv"
-            manager.export_report("attendance", out_path)
+            if report_type == "Finance":
 
-        st.success(f"{report_type} report exported successfully.")
+                out_path = "finance_report.csv"
+
+                manager.export_report(
+                    "finance",
+                    out_path
+                )
+
+            else:
+
+                out_path = "attendance_report.csv"
+
+                manager.export_report(
+                    "attendance",
+                    out_path
+                )
+
+            st.success(
+                f"{report_type} report exported successfully."
+            )
