@@ -4283,24 +4283,11 @@ def show_admin_page(manager, user):
     if st.button("Export Report"):
 
         if report_type == "Finance":
-            data = manager.finance_log
-            file_name = "finance_report.csv"
+            out_path = "finance_report.csv"
+            manager.export_report("finance", out_path)
 
         else:
-            data = manager.attendance_log
-            file_name = "attendance_report.csv"
+            out_path = "attendance_report.csv"
+            manager.export_report("attendance", out_path)
 
-        if data:
-            df = pd.DataFrame(data)
-
-            csv_data = df.to_csv(index=False)
-
-            st.download_button(
-                label="Download CSV",
-                data=csv_data,
-                file_name=file_name,
-                mime="text/csv"
-            )
-
-        else:
-            st.info("There is no data to export.")
+        st.success(f"{report_type} report exported successfully.")
