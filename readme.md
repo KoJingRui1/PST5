@@ -1,18 +1,19 @@
 This is MSMS from Ko Jing Rui in Monash University.
 
-This is a Musical School Management System.  This update provide an User Interface.  It replace the text console with a modern Graphical User interface by using streamlit.  
+This is a Musical School Management System.  This update provide a test and a backup for the user.  This project also develop a function for the admin to record the payment or check the payment history. 
 
-This is a project developed for FIT 1056 as the PST4.
+This is a project developed for FIT 1056 as the PST5.
 
-The github page of the project is 
+The github page of the project is https://github.com/KoJingRui1/PST5
 
 This is the project structure.
 
 ```text
-PST4/
+PST5/
 ├── app/
 │   ├── __init__.py
 │   ├── admin.py
+│   ├── admin_utils.py
 │   ├── schedule.py
 │   ├── student.py
 │   └── teacher.py
@@ -25,9 +26,13 @@ PST4/
 │   ├── teacher_pages.py
 │   └── admin_pages.py
 ├──data/
+│   ├── backup/
 │   └── msms.json
+├──tests/
+│   └──test_schedule_manager.py
 ├── main.py
 ├── run.bat
+├── msms.log
 └── README.md
 ```
 The requirements of this system is python, streamlit and pandas.  The project uses a Python virtual environment for its dependencies.
@@ -54,6 +59,42 @@ data/msms.json
 
 that contains the data about the users, the schools and the courses.
 
+I should talk about the updates before the overview, that is almost the same as the previous version.  In this version, we include a new page in the admin pages, that is finance. First, it allowed admin to record a new payment based on the student user ID and the amount of the money.
+
+There is a list of all payment record for you to check them.
+
+There is also a function to create a report by using scv file.  It will produce an .scv file in the PST5 folder.  You can choose to export the attendance or the finance report.
+
+That's all about the finance page.
+
+The next update is the admin and quality ulitity.  In this update, the system provide a backup file for the user.  It will be in the backup folder.  The function of the backup file is to backup the data.  If there is any data lost, you can recover your data at the place.
+
+A logger is also provide in the system.  Every activity in the system will be recorded in the file msms.log in the PST5.  As an example, 
+```
+2026-10-19 19:13:48,098 - INFO - Admin ID 1 was successfully created. Name: aa
+```
+This shows that a new admin is created at 19 October 2026 at 7 o'clock in the night, 13 minutes and 48 seconds.  
+
+The last update is this program provide a test file.  To run the test file, you should enter the terminal, and enter the code for the text file to start.
+
+```
+pytest
+```
+
+If everything is correct, you will see the following text in the terminal.
+
+```
+================================================= test session starts =================================================
+platform win32 -- Python 3.10.11, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\Ko Jing Rui'\FIT1056_Works\FIT1056-PSTs-37120077\PST5
+plugins: anyio-4.15.1
+collected 23 items
+
+tests\test_schedule_manager.py .......................                                                           [100%]
+
+================================================= 23 passed in 0.17s ==================================================
+```
+That is the update.  After that is the system overview.
 If you run the file without an msms.json, that means no data and start over, you will be request to create the first admin.  You should enter your name, your password and confirm your password.
 
 Admin is an important role in the system.  Their role is to control the whole system and edit the data.  After you log in as an admin, you will see five buttons at the side bar.
@@ -71,6 +112,8 @@ The fourth function is courses.  It will shows all the courses in the system.  Y
 The fifth function is instrument.  You will see a table with instrument, the teachers speciality is the instrument, the student who enrol in the instrument and the course that teach the instrument.  There is a new function which you can add a new instrument inside the instrument list.
 
 The sixth function is daily roster.  You can choose the date you need and the default date is TODAY.  You can also open the detail of the lessons by chosing them along and see about the course.  You can give attandence to the students also.
+
+The seventh function is the finance, which is writen in the updates.
 
 Now, the last function is for you to log out.  You will go back to the deflaut page.  In this page, you can log in or sign up.
 

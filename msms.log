@@ -132,3 +132,14 @@
 2026-10-18 23:17:29,404 - INFO - Data successfully backed up to data/backups\msms_backup_2026-10-18_23-17-29.json
 2026-10-18 23:17:30,334 - INFO - Data successfully backed up to data/backups\msms_backup_2026-10-18_23-17-30.json
 2026-10-18 23:17:30,384 - INFO - Data successfully backed up to data/backups\msms_backup_2026-10-18_23-17-30.json
+2026-10-19 19:13:42,213 - ERROR - Failed to create backup: [Errno 2] No such file or directory: 'data/msms.json'
+2026-10-19 19:13:46,646 - ERROR - Failed to create backup: [Errno 2] No such file or directory: 'data/msms.json'
+2026-10-19 19:13:47,419 - ERROR - Failed to create backup: [Errno 2] No such file or directory: 'data/msms.json'
+2026-10-19 19:13:48,031 - ERROR - Failed to create backup: [Errno 2] No such file or directory: 'data/msms.json'
+2026-10-19 19:13:48,094 - ERROR - Failed to create backup: [Errno 2] No such file or directory: 'data/msms.json'
+2026-10-19 19:13:48,098 - INFO - Admin ID 1 was successfully created. Name: aa
+2026-10-19 19:13:48,161 - INFO - Data successfully backed up to data/backups\msms_backup_2026-10-19_19-13-48.json
+2026-10-19 19:13:49,111 - INFO - Data successfully backed up to data/backups\msms_backup_2026-10-19_19-13-49.json
+2026-10-19 19:13:50,066 - INFO - Data successfully backed up to data/backups\msms_backup_2026-10-19_19-13-50.json
+2026-10-19 19:13:50,119 - INFO - Data successfully backed up to data/backups\msms_backup_2026-10-19_19-13-50.json
+2026-10-19 19:13:50,663 - INFO - Data successfully backed up to data/backups\msms_backup_2026-10-19_19-13-50.json

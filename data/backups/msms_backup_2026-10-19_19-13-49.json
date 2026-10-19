@@ -1,0 +1,23 @@
+{
+    "students": [],
+    "teachers": [],
+    "courses": [],
+    "admin": [
+        {
+            "id": 1,
+            "name": "aa",
+            "password": "aa"
+        }
+    ],
+    "attendance": [],
+    "school_data": {
+        "applications": [],
+        "next_user_id": 2,
+        "next_course_id": 1,
+        "instruments": [
+            "piano",
+            "guitar"
+        ]
+    },
+    "finance_log": []
+}
