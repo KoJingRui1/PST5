@@ -3991,7 +3991,6 @@ def show_admin_page(manager, user):
                             with col2:
 
                                 if attendance_exists:
-
                                     if st.button(
                                         "Delete Attendance",
                                         key=(
@@ -4001,29 +4000,17 @@ def show_admin_page(manager, user):
                                             f"{student.id}"
                                         )
                                     ):
+                                        success = manager.delete_attendance(
+                                            student.id,
+                                            target_course.id,
+                                            selected_lesson_index
+                                        )
 
-                                        manager.attendance_log = [
-                                            record
-                                            for record
-                                            in manager.attendance_log
-                                            if not (
-                                                record["student_id"]
-                                                == student.id
-                                                and
-                                                record["course_id"]
-                                                == target_course.id
-                                                and
-                                                record["lesson_index"]
-                                                == selected_lesson_index
-                                            )
-                                        ]
-
-                                        manager._save_data()
-
-                                        st.rerun()
-
+                                        if success:
+                                            st.rerun()
+                                        else:
+                                            st.error("Failed to delete attendance.")
                                 else:
-
                                     if st.button(
                                         "Give Attendance",
                                         key=(
@@ -4033,29 +4020,16 @@ def show_admin_page(manager, user):
                                             f"{student.id}"
                                         )
                                     ):
-
-                                        attendance_record = {
-                                            "student_id": student.id,
-                                            "course_id": target_course.id,
-                                            "lesson_index": (
-                                                selected_lesson_index
-                                            ),
-                                            "date": lesson["date"],
-                                            "time": lesson["time"],
-                                            "activity": lesson["activity"],
-                                            "timestamp": (
-                                                datetime.datetime.now()
-                                                .isoformat()
-                                            )
-                                        }
-
-                                        manager.attendance_log.append(
-                                            attendance_record
+                                        success = manager.give_attendance(
+                                            student.id,
+                                            target_course.id,
+                                            selected_lesson_index
                                         )
 
-                                        manager._save_data()
-
-                                        st.rerun()
+                                        if success:
+                                            st.rerun()
+                                        else:
+                                            st.error("Failed to give attendance.")
 
                         st.divider()
 
